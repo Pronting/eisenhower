@@ -1,0 +1,97 @@
+# =====================
+# AI 相关文件
+# =====================
+.claude/
+claude
+claude/
+.spec-workflow/
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+.cursor/
+.copilot/
+.github/copilot-instructions.md
+
+# =====================
+# 密钥 & 环境变量
+# =====================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials*
+*-secret*
+
+# =====================
+# 依赖 & 构建产物
+# =====================
+node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+build/
+dist/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+*.so
+
+# =====================
+# Python 虚拟环境
+# =====================
+venv/
+.venv/
+env/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =====================
+# IDE & 编辑器
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =====================
+# Docker
+# =====================
+.docker/
+
+# =====================
+# 日志 & 临时文件
+# =====================
+*.log
+*.tmp
+.cache/
+coverage/
+.coverage
+.pytest_cache/
+htmlcov/
+*.cover
+
+# =====================
+# 数据库
+# =====================
+*.db
+*.sqlite
+*.sqlite3
+dumps/
+
+# =====================
+# OS
+# =====================
+.DS_Store
+Thumbs.db
+desktop.ini
