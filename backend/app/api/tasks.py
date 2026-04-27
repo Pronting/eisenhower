@@ -1,6 +1,8 @@
 import re
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func as sqla_func
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.core.database import get_db
@@ -35,6 +37,7 @@ def _task_to_dict(task: Task) -> dict:
         "quadrant": task.quadrant.value if task.quadrant else "q4",
         "status": task.status.value if task.status else "pending",
         "is_long_term": bool(task.is_long_term),
+        "due_date": task.due_date.strftime("%Y-%m-%d") if task.due_date else None,
         "ai_metadata": task.ai_metadata or {},
         "created_at": task.created_at.isoformat() if task.created_at else "",
         "updated_at": task.updated_at.isoformat() if task.updated_at else None,
@@ -45,6 +48,7 @@ def _task_to_dict(task: Task) -> dict:
 def list_tasks(
     quadrant: Optional[str] = None,
     status: Optional[str] = None,
+    due_date: Optional[str] = Query(default=None, description="Filter by due date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -53,6 +57,15 @@ def list_tasks(
         query = query.filter(Task.quadrant == quadrant)
     if status:
         query = query.filter(Task.status == status)
+    if due_date:
+        try:
+            dt = datetime.strptime(due_date, "%Y-%m-%d")
+            query = query.filter(
+                Task.due_date >= dt,
+                Task.due_date < dt + timedelta(days=1),
+            )
+        except ValueError:
+            pass  # ignore malformed date string
     tasks = query.order_by(Task.created_at.desc()).all()
     return ApiResponse(data=[_task_to_dict(t) for t in tasks])
 
@@ -82,11 +95,20 @@ def create_task(
     if not description and ai_result.get("summary"):
         description = ai_result["summary"].strip()[:20]
 
+    # Parse due_date if provided
+    due_date = None
+    if req.due_date:
+        try:
+            due_date = datetime.strptime(req.due_date, "%Y-%m-%d")
+        except ValueError:
+            pass
+
     task = Task(
         user_id=user.id,
         title=req.title,
         description=description,
         quadrant=quadrant,
+        due_date=due_date,
         ai_metadata=ai_result,
         is_long_term=1 if ai_result.get("is_long_term") else 0,
     )
@@ -116,6 +138,11 @@ def update_task(
         task.quadrant = Quadrant(req.quadrant)
     if req.status is not None:
         task.status = TaskStatus(req.status)
+    if req.due_date is not None:
+        try:
+            task.due_date = datetime.strptime(req.due_date, "%Y-%m-%d") if req.due_date else None
+        except ValueError:
+            pass
 
     db.commit()
     db.refresh(task)

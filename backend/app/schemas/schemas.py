@@ -31,6 +31,7 @@ class TaskCreate(BaseModel):
     title: str = Field(max_length=200)
     description: Optional[str] = Field(default="", max_length=2000)
     quadrant: Optional[str] = None
+    due_date: Optional[str] = Field(default=None, description="Due date in YYYY-MM-DD format")
 
     @field_validator("quadrant")
     @classmethod
@@ -45,6 +46,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = Field(default=None, max_length=2000)
     quadrant: Optional[str] = None
     status: Optional[str] = None
+    due_date: Optional[str] = Field(default=None, description="Due date in YYYY-MM-DD format")
 
     @field_validator("quadrant")
     @classmethod
