@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -9,6 +11,20 @@ from app.agent.classify import ai_classify as ai_classify_task
 from app.agent.summarize import invalidate_cache
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+
+# Pattern to strip AI/tech mentions from reason text
+_RE_AI_MENTION = re.compile(
+    r'\b(AI|人工智能|模型|model|系统判定|system|算法|algorithm|机器|machine)\b[:：]?\s*',
+    flags=re.IGNORECASE
+)
+
+
+def _sanitize_reason(text: str) -> str:
+    """Remove AI/tech jargon from reason text so it reads like human advice."""
+    text = _RE_AI_MENTION.sub('', text).strip()
+    # Remove leading separators left after stripping
+    text = re.sub(r'^[-—–·,，。、]\s*', '', text)
+    return text or "根据任务内容自动分类"
 
 
 def _task_to_dict(task: Task) -> dict:
@@ -52,15 +68,24 @@ def create_task(
     # If user explicitly set a quadrant in the UI, use it directly (skip AI)
     if req.quadrant:
         quadrant = quadrant_map.get(req.quadrant, Quadrant.Q4)
-        ai_result = {"quadrant": req.quadrant, "reason": "用户手动指定优先级", "method": "manual"}
+        ai_result = {"quadrant": req.quadrant, "reason": "用户手动指定优先级", "summary": req.title.strip()[:20], "method": "manual"}
     else:
         ai_result = ai_classify_task(req.title, req.description or "")
         quadrant = quadrant_map.get(ai_result.get("quadrant", "q4"), Quadrant.Q4)
 
+    # Sanitize AI reason — remove any mention of AI/model/tech names
+    if "reason" in ai_result:
+        ai_result["reason"] = _sanitize_reason(ai_result["reason"])
+
+    # Auto-generate description from AI summary when user did not provide one
+    description = req.description or ""
+    if not description and ai_result.get("summary"):
+        description = ai_result["summary"].strip()[:20]
+
     task = Task(
         user_id=user.id,
         title=req.title,
-        description=req.description or "",
+        description=description,
         quadrant=quadrant,
         ai_metadata=ai_result,
         is_long_term=1 if ai_result.get("is_long_term") else 0,

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
@@ -14,6 +14,7 @@
     "framer-motion": "^12.38.0",
     "next": "^14.0.4",
     "next-themes": "^0.4.6",
+    "oh-my-live2d": "^0.19.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^3.8.1"

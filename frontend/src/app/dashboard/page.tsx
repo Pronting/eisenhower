@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
 import QuadrantBoard from '@/components/QuadrantBoard'
 import { useLang } from '@/i18n/LanguageContext'
+
+const Mascot = dynamic(() => import('@/components/Mascot'), { ssr: false })
 
 interface Task {
   id: number
@@ -641,6 +644,9 @@ export default function DashboardPage() {
           onStatusChange={handleStatusChange}
           onQuadrantChange={handleQuadrantChange}
         />
+
+        {/* AI Mascot */}
+        <Mascot />
       </main>
     </div>
   )

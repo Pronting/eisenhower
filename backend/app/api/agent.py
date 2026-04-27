@@ -18,6 +18,7 @@ from app.agent.analyze import analyze_workload
 from app.agent.weekly import weekly_review
 from app.agent.schedule import suggest_schedule
 from app.agent.decompose import decompose_task
+from app.agent.advice import generate_advice
 from app.core.config import settings
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -94,6 +95,14 @@ def summary_v2_todo(user: User = Depends(get_current_user), db: Session = Depend
     """Generate todo summary only (pending tasks, ≤50 Chinese chars, cached)."""
     tasks = get_user_tasks(user, db)
     result = generate_todo_summary(tasks, user.id)
+    return ApiResponse(data=result)
+
+
+@router.post("/advice")
+def mascot_advice(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Generate quick AI advice for the dashboard mascot (v4 flash, <2s)."""
+    tasks = get_user_tasks(user, db)
+    result = generate_advice(tasks)
     return ApiResponse(data=result)
 
 
