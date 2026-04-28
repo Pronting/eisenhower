@@ -10,7 +10,7 @@ import smtplib
 from email.header import Header
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -123,8 +123,15 @@ def send_email(to_address: str, subject: str, html_body: str) -> tuple[bool, str
 # ======================================================================
 
 def build_push_content(user_id: int, db: Session) -> str:
-    """Build push summary HTML from user's tasks."""
-    tasks = db.query(Task).filter(Task.user_id == user_id).all()
+    """Build push summary HTML from user's tasks due today."""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+
+    tasks = db.query(Task).filter(
+        Task.user_id == user_id,
+        Task.due_date >= today_start,
+        Task.due_date < today_end,
+    ).all()
 
     q1 = [t for t in tasks if t.quadrant and t.quadrant.value == "q1"]
     q2 = [t for t in tasks if t.quadrant and t.quadrant.value == "q2"]

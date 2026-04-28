@@ -223,6 +223,89 @@ class TestTasks:
         assert len(resp.json()["data"]) == 0
 
     # ------------------------------------------------------------------
+    # Date filter
+    # ------------------------------------------------------------------
+
+    def test_list_tasks_by_due_date(self, client, token):
+        """Filter tasks by due_date query parameter."""
+        today = "2026-04-28"
+        tomorrow = "2026-04-29"
+
+        client.post("/api/tasks", json={
+            "title": "Today Task", "due_date": today,
+        }, headers={"Authorization": f"Bearer {token}"})
+        client.post("/api/tasks", json={
+            "title": "Tomorrow Task", "due_date": tomorrow,
+        }, headers={"Authorization": f"Bearer {token}"})
+
+        # Filter for today — should only return today's task
+        resp_today = client.get(f"/api/tasks?due_date={today}",
+                                headers={"Authorization": f"Bearer {token}"})
+        assert resp_today.status_code == 200
+        assert len(resp_today.json()["data"]) == 1
+        assert resp_today.json()["data"][0]["title"] == "Today Task"
+
+        # Filter for tomorrow — should only return tomorrow's task
+        resp_tomorrow = client.get(f"/api/tasks?due_date={tomorrow}",
+                                   headers={"Authorization": f"Bearer {token}"})
+        assert resp_tomorrow.status_code == 200
+        assert len(resp_tomorrow.json()["data"]) == 1
+        assert resp_tomorrow.json()["data"][0]["title"] == "Tomorrow Task"
+
+    def test_list_tasks_by_due_date_no_match(self, client, token):
+        """Filtering by a due_date with no tasks returns empty list."""
+        client.post("/api/tasks", json={
+            "title": "Today Task", "due_date": "2026-04-28",
+        }, headers={"Authorization": f"Bearer {token}"})
+
+        resp = client.get("/api/tasks?due_date=2026-05-01",
+                          headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        assert len(resp.json()["data"]) == 0
+
+    def test_list_tasks_invalid_due_date(self, client, token):
+        """Malformed due_date should return 422, not silently ignore."""
+        resp = client.get("/api/tasks?due_date=not-a-date",
+                          headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_create_task_with_due_date(self, client, token):
+        """Creating a task with a valid due_date stores and returns it."""
+        resp = client.post("/api/tasks", json={
+            "title": "Dated Task", "due_date": "2026-05-15",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["due_date"] == "2026-05-15"
+
+        # Verify it's filterable
+        listed = client.get("/api/tasks?due_date=2026-05-15",
+                           headers={"Authorization": f"Bearer {token}"})
+        assert len(listed.json()["data"]) == 1
+
+    def test_update_task_due_date(self, client, token):
+        """Updating a task's due_date persists and is filterable."""
+        create = client.post("/api/tasks", json={
+            "title": "Date Update Test", "due_date": "2026-04-28",
+        }, headers={"Authorization": f"Bearer {token}"})
+        task_id = create.json()["data"]["id"]
+
+        # Update to a new date
+        client.put(f"/api/tasks/{task_id}", json={"due_date": "2026-05-01"},
+                   headers={"Authorization": f"Bearer {token}"})
+
+        # Old date filter: empty
+        old = client.get("/api/tasks?due_date=2026-04-28",
+                        headers={"Authorization": f"Bearer {token}"})
+        assert len(old.json()["data"]) == 0
+
+        # New date filter: found
+        new = client.get("/api/tasks?due_date=2026-05-01",
+                        headers={"Authorization": f"Bearer {token}"})
+        assert len(new.json()["data"]) == 1
+        assert new.json()["data"][0]["due_date"] == "2026-05-01"
+
+    # ------------------------------------------------------------------
     # Update
     # ------------------------------------------------------------------
 
