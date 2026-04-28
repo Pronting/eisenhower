@@ -177,3 +177,20 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes bgPulse1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(3%, -2%) scale(1.05); }
+  66%  { transform: translate(-2%, 3%) scale(0.95); }
+}
+
+@keyframes bgPulse2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-3%, -3%) scale(1.08); }
+}
+
+@keyframes bgPulse3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(2%, 2%) scale(1.04); }
+  75%  { transform: translate(-2%, -1%) scale(0.97); }
+}

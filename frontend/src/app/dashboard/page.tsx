@@ -255,7 +255,31 @@ export default function DashboardPage() {
   const completedCount = tasks.filter(t => t.status === 'completed').length
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="flex flex-col h-screen relative" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {/* Animated gradient background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div
+          className="absolute -top-1/2 -left-1/4 w-[150%] h-[150%] rounded-full opacity-[0.06]"
+          style={{
+            background: 'radial-gradient(circle at 50% 40%, var(--neon-blue) 0%, transparent 50%)',
+            animation: 'bgPulse1 12s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute -bottom-1/2 -right-1/4 w-[150%] h-[150%] rounded-full opacity-[0.05]"
+          style={{
+            background: 'radial-gradient(circle at 40% 60%, var(--neon-purple) 0%, transparent 50%)',
+            animation: 'bgPulse2 15s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute top-0 left-1/3 w-[120%] h-[120%] rounded-full opacity-[0.04]"
+          style={{
+            background: 'radial-gradient(circle at 60% 50%, var(--neon-amber) 0%, transparent 50%)',
+            animation: 'bgPulse3 18s ease-in-out infinite',
+          }}
+        />
+      </div>
       <Header username={user?.username || ''} onLogout={handleLogout} />
       <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col overflow-y-auto">
         {/* Top bar */}
