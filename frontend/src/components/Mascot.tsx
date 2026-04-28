@@ -24,6 +24,15 @@ export default function Mascot() {
   const readyRef = useRef(false)
   const [mascotHidden, setMascotHidden] = useState(false)
   const [ready, setReady] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile — don't render mascot at all on small screens
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const showAdvice = useCallback(async () => {
     if (loadingRef.current) return
@@ -171,19 +180,26 @@ export default function Mascot() {
 
   const handleHide = () => {
     const instance = oml2dRef.current
-    if (!instance || !readyRef.current) return
-    instance.stageSlideOut()
-    setMascotHidden(true)
+    if (!instance) return
+    if (typeof instance.stageSlideOut === 'function') {
+      instance.stageSlideOut()
+      setMascotHidden(true)
+    }
   }
 
   const handleShow = () => {
     const instance = oml2dRef.current
-    if (!instance || !readyRef.current) return
-    instance.stageSlideIn()
-    setMascotHidden(false)
+    if (!instance) return
+    if (typeof instance.stageSlideIn === 'function') {
+      instance.stageSlideIn()
+      setMascotHidden(false)
+    }
   }
 
-  const btnBase = "fixed left-4 z-50 flex items-center justify-center rounded-full text-base shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl max-md:hidden"
+  const btnBase = "fixed left-4 z-[9999] flex items-center justify-center rounded-full text-base shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
+
+  // Don't render anything on mobile
+  if (isMobile) return null
 
   // Loading — show spinner
   if (!ready) {
