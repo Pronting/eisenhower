@@ -4,18 +4,42 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api'
 
-async function fetchAdvice(): Promise<string> {
+async function fetchJson(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token')
-  const res = await fetch(`${API}/agent/advice`, {
-    method: 'POST',
+  const res = await fetch(`${API}${path}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
     },
   })
   if (!res.ok) throw new Error('Failed')
   const json = await res.json()
-  return json.data.advice
+  return json.data
+}
+
+async function fetchAdvice(): Promise<string> {
+  const data = await fetchJson('/agent/advice', { method: 'POST' })
+  return data.advice
+}
+
+async function fetchDailySummary(): Promise<string> {
+  const data = await fetchJson('/agent/summary-v2/daily', { method: 'POST' })
+  return data.summary || ''
+}
+
+const DRAG_POS_KEY = 'ishwe_mascot_pos'
+
+function loadPos(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(DRAG_POS_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function savePos(x: number, y: number) {
+  localStorage.setItem(DRAG_POS_KEY, JSON.stringify({ x, y }))
 }
 
 export default function Mascot() {
@@ -26,13 +50,38 @@ export default function Mascot() {
   const [ready, setReady] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
-  // Detect mobile — don't render mascot at all on small screens
+  // Drag state
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, elX: 0, elY: 0 })
+  const posRef = useRef(loadPos())
+
+  // Auto-push timer ref
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const initPopRef = useRef(false)
+
+  // Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  const showBubble = useCallback(async (text: string, duration: number) => {
+    const instance = oml2dRef.current
+    instance?.tipsMessage?.(text, duration)
+  }, [])
+
+  const autoPush = useCallback(async () => {
+    if (mascotHidden || !readyRef.current) return
+    try {
+      const summary = await fetchDailySummary()
+      if (summary) {
+        showBubble(`📋 ${summary}`, 8000)
+      }
+    } catch {
+      // silent fail — auto-push is nice-to-have
+    }
+  }, [mascotHidden, showBubble])
 
   const showAdvice = useCallback(async () => {
     if (loadingRef.current) return
@@ -50,14 +99,114 @@ export default function Mascot() {
     }
   }, [])
 
+  // Auto-push interval — every 5 min
+  useEffect(() => {
+    if (!ready || mascotHidden) return
+
+    // First auto-push after 3s delay
+    if (!initPopRef.current) {
+      initPopRef.current = true
+      const t = setTimeout(() => autoPush(), 3000)
+      timerRef.current = setInterval(() => autoPush(), 5 * 60 * 1000)
+      return () => {
+        clearTimeout(t)
+        if (timerRef.current) clearInterval(timerRef.current)
+      }
+    }
+  }, [ready, mascotHidden, autoPush])
+
+  // Drag handlers
+  const onDragStart = useCallback((e: MouseEvent) => {
+    const stage = oml2dRef.current?.stage
+    if (!stage) return
+    const el = stage.canvasElement?.parentElement as HTMLElement | null
+    if (!el) return
+
+    dragRef.current.active = true
+    dragRef.current.startX = e.clientX
+    dragRef.current.startY = e.clientY
+    dragRef.current.elX = el.offsetLeft || 0
+    dragRef.current.elY = el.offsetTop || 0
+    el.style.cursor = 'grabbing'
+    e.preventDefault()
+  }, [])
+
+  const onDragMove = useCallback((e: MouseEvent) => {
+    if (!dragRef.current.active) return
+    const stage = oml2dRef.current?.stage
+    if (!stage) return
+    const el = stage.canvasElement?.parentElement as HTMLElement | null
+    if (!el) return
+
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    const nx = dragRef.current.elX + dx
+    const ny = dragRef.current.elY + dy
+
+    el.style.position = 'fixed'
+    el.style.left = `${nx}px`
+    el.style.top = `${ny}px`
+    el.style.right = 'auto'
+    el.style.bottom = 'auto'
+  }, [])
+
+  const onDragEnd = useCallback((e: MouseEvent) => {
+    if (!dragRef.current.active) return
+    dragRef.current.active = false
+
+    const stage = oml2dRef.current?.stage
+    if (!stage) return
+    const el = stage.canvasElement?.parentElement as HTMLElement | null
+    if (el) {
+      el.style.cursor = 'pointer'
+      const x = el.offsetLeft || 0
+      const y = el.offsetTop || 0
+      savePos(x, y)
+      posRef.current = { x, y }
+    }
+  }, [])
+
+  // Attach drag listeners
+  useEffect(() => {
+    if (!ready) return
+    const canvas = oml2dRef.current?.stage?.canvasElement as HTMLCanvasElement | null
+    if (!canvas) return
+
+    canvas.addEventListener('mousedown', onDragStart)
+    window.addEventListener('mousemove', onDragMove)
+    window.addEventListener('mouseup', onDragEnd)
+
+    return () => {
+      canvas.removeEventListener('mousedown', onDragStart)
+      window.removeEventListener('mousemove', onDragMove)
+      window.removeEventListener('mouseup', onDragEnd)
+    }
+  }, [ready, onDragStart, onDragMove, onDragEnd])
+
+  // Restore saved position
+  useEffect(() => {
+    if (!ready) return
+    const pos = posRef.current
+    if (!pos) return
+    const intv = setInterval(() => {
+      const stage = oml2dRef.current?.stage
+      const el = stage?.canvasElement?.parentElement as HTMLElement | null
+      if (el) {
+        el.style.position = 'fixed'
+        el.style.left = `${pos.x}px`
+        el.style.top = `${pos.y}px`
+        el.style.right = 'auto'
+        el.style.bottom = 'auto'
+        clearInterval(intv)
+      }
+    }, 200)
+    return () => clearInterval(intv)
+  }, [ready])
+
   useEffect(() => {
     let instance: any = null
     let mounted = true
 
-    // Clear stale localStorage status that would override initialStatus
-    // The library checks localStorage first (J0()), and if "sleep",
-    // it shows a hidden statusBar instead of calling stageSlideIn().
-    // Since we hide the statusBar (display:none), this creates a deadlock.
     localStorage.removeItem('OML2D_STATUS')
 
     const init = async () => {
@@ -77,13 +226,13 @@ export default function Mascot() {
           {
             name: 'Senko',
             path: 'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model/Live2D/Senko_Normals/senko.model3.json',
-            scale: 0.10,
-            position: [15, 50],
+            scale: 0.07,
+            position: [15, 10],
             anchor: [0, 0],
             volume: 0,
             stageStyle: {
-              width: 200,
-              height: 280,
+              width: 160,
+              height: 220,
             },
           },
         ],
@@ -91,13 +240,13 @@ export default function Mascot() {
         tips: {
           messageLine: 3,
           style: {
-            width: 220,
-            height: 70,
-            transform: 'translateY(20px)',
-            fontSize: '13px',
+            width: 200,
+            height: 64,
+            transform: 'translateY(12px)',
+            fontSize: '12px',
             lineHeight: '1.4',
-            padding: '8px 12px',
-            borderRadius: '14px',
+            padding: '6px 10px',
+            borderRadius: '12px',
             backgroundColor: 'rgba(30,30,40,0.92)',
             color: '#e8e8f0',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
@@ -147,7 +296,6 @@ export default function Mascot() {
             readyRef.current = true
             setReady(true)
 
-            // Attach click-to-advice handler directly on the library's canvas
             const canvas = instance.stage?.canvasElement as HTMLCanvasElement | null
             if (canvas && !canvas.dataset.mascotReady) {
               canvas.dataset.mascotReady = '1'
@@ -198,10 +346,8 @@ export default function Mascot() {
 
   const btnBase = "fixed left-4 z-[9999] flex items-center justify-center rounded-full text-base shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
 
-  // Don't render anything on mobile
   if (isMobile) return null
 
-  // Loading — show spinner
   if (!ready) {
     return (
       <span
@@ -219,7 +365,6 @@ export default function Mascot() {
     )
   }
 
-  // Hidden — show restore button
   if (mascotHidden) {
     return (
       <button
@@ -238,7 +383,6 @@ export default function Mascot() {
     )
   }
 
-  // Visible — show close button
   return (
     <button
       onClick={handleHide}
