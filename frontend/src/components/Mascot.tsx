@@ -243,7 +243,7 @@ export default function Mascot() {
           style: {
             width: 200,
             height: 64,
-            transform: 'translateY(12px)',
+            transform: 'translateY(-32px)',
             fontSize: '12px',
             lineHeight: '1.4',
             padding: '6px 10px',

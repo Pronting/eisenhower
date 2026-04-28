@@ -13,16 +13,23 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 
 def _apply_due_date_filter(query, due_date: Optional[str]):
-    """Apply date-range filter to a query if due_date is provided."""
+    """Apply date-range filter to a query if due_date is provided.
+
+    Matches the same logic as tasks.py:list_tasks — includes tasks with
+    NULL due_date, long-term tasks (when date >= today), and exact matches.
+    """
     if due_date:
         try:
             dt = datetime.strptime(due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
             raise HTTPException(status_code=422, detail=f"Invalid date format: {due_date}. Expected YYYY-MM-DD.")
-        return query.filter(
-            Task.due_date >= dt,
-            Task.due_date < dt + timedelta(days=1),
-        )
+        from sqlalchemy import or_, and_
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        return query.filter(or_(
+            Task.due_date.is_(None),
+            and_(Task.is_long_term == 1, dt >= today),
+            and_(Task.due_date >= dt, Task.due_date < dt + timedelta(days=1)),
+        ))
     return query
 
 
