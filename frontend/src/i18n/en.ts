@@ -95,6 +95,10 @@ const en: typeof zh = {
   'stats.keepGoing': 'Keep going!',
   'stats.moreToDo': 'More tasks to complete',
   'stats.completed': 'Completed',
+  'stats.dateDimension': 'By Date',
+  'stats.totalDimension': 'All Time',
+  'stats.toggleCollapse': 'Collapse Stats',
+  'stats.toggleExpand': 'Expand Stats',
 
   // Settings
   'settings.title': 'Settings',

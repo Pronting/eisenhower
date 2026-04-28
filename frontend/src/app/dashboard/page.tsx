@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
 import QuadrantBoard from '@/components/QuadrantBoard'
+import StatsSection from '@/components/StatsSection'
 import { useLang } from '@/i18n/LanguageContext'
 
 const Mascot = dynamic(() => import('@/components/Mascot'), { ssr: false })
@@ -256,7 +257,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <Header username={user?.username || ''} onLogout={handleLogout} />
-      <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col overflow-hidden">
+      <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col overflow-y-auto">
         {/* Top bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
           <div>
@@ -644,6 +645,9 @@ export default function DashboardPage() {
           onStatusChange={handleStatusChange}
           onQuadrantChange={handleQuadrantChange}
         />
+
+        {/* Stats Section */}
+        <StatsSection selectedDate={selectedDate} />
 
         {/* AI Mascot */}
         <Mascot />

@@ -93,6 +93,10 @@ const zh = {
   'stats.keepGoing': '继续加油！',
   'stats.moreToDo': '还有任务待完成',
   'stats.completed': '已完成',
+  'stats.dateDimension': '日期维度',
+  'stats.totalDimension': '总维度',
+  'stats.toggleCollapse': '收起统计',
+  'stats.toggleExpand': '展开统计',
 
   // Settings
   'settings.title': '设置',
