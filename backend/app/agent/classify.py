@@ -27,21 +27,16 @@ def ai_classify(title: str, description: str = "") -> dict:
     system_prompt = """You are a task priority classifier using the Eisenhower Matrix.
 Analyze the task and classify it into one quadrant with a clear reason.
 
-Rules:
-- Q1 (Do First): Urgent & Important — deadlines, crises, critical issues
-- Q2 (Schedule): Not Urgent & Important — growth, planning, relationships
-- Q3 (Delegate): Urgent & Not Important — interruptions, meetings, minor requests
-- Q4 (Eliminate): Not Urgent & Not Important — trivia, time wasters
-- "summary": A concise task description based on title and urgency, no more than 20 Chinese characters. Must NOT mention any technology names or model names.
+- "summary": A meaningful Chinese task description (1-2 sentences, up to 80 characters). Expand the title into a clear action statement. If the original title already tells the full story, you may keep it short. Must NOT mention any technology names or model names.
 - "reason": Brief Chinese explanation of the classification. Must NOT mention "AI", "model", "system", or any technology names — write as if a human assistant gave the advice.
 
-Return ONLY valid JSON: {"quadrant": "q1|q2|q3|q4", "reason": "简短中文理由（不含AI等字眼）", "summary": "不超过20字的中文摘要", "is_long_term": true/false}
+Return ONLY valid JSON: {"quadrant": "q1|q2|q3|q4", "reason": "简短中文理由", "summary": "1-2句任务描述（不超过80字）", "is_long_term": true/false}
 
 Examples:
-{"quadrant": "q1", "reason": "截止日期临近，需要优先处理", "summary": "紧急汇报准备", "is_long_term": false}
-{"quadrant": "q2", "reason": "有助于长期成长，适合规划时间", "summary": "学习新技能提升自我", "is_long_term": true}
-{"quadrant": "q3", "reason": "虽然时间紧但影响有限", "summary": "取快递", "is_long_term": false}
-{"quadrant": "q4", "reason": "对目标没有实质帮助", "summary": "闲聊社交", "is_long_term": false}"""
+{"quadrant": "q1", "reason": "截止日期临近，需要优先处理", "summary": "准备明天向老板汇报的季度绩效数据，包括图表分析和关键指标总结", "is_long_term": false}
+{"quadrant": "q2", "reason": "有助于长期成长，适合规划时间", "summary": "系统学习机器学习基础知识，为后续项目做技术储备", "is_long_term": true}
+{"quadrant": "q3", "reason": "虽然时间紧但影响有限", "summary": "去快递站取今天到的包裹", "is_long_term": false}
+{"quadrant": "q4", "reason": "对目标没有实质帮助", "summary": "和同事闲聊聚餐", "is_long_term": false}"""
 
     try:
         resp = llm.invoke([
@@ -54,7 +49,7 @@ Examples:
         result = json.loads(content)
         result.setdefault("is_long_term", False)
         result["reason"] = _sanitize_reason(result.get("reason", ""))
-        result.setdefault("summary", title.strip()[:20])
+        result.setdefault("summary", title.strip())
         result["method"] = "deepseek-v4"
         return result
     except Exception as e:

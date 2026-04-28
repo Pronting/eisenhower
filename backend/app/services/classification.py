@@ -48,8 +48,8 @@ def classify_task(title: str, description: str = "") -> dict:
         quadrant = Quadrant.Q4  # Eliminate
         reason = "既不紧急也不重要 — 考虑删除"
 
-    # Generate a short summary from title only, capped at 20 chars
-    summary = title.strip()[:20]
+    # Generate description from title
+    summary = title.strip()
 
     return {
         "quadrant": quadrant.value,

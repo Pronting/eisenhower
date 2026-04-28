@@ -111,8 +111,8 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
             </span>
           )}
           {task.ai_metadata?.reason && (
-            <p className="text-xs mt-1 italic font-mono" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-              AI: {task.ai_metadata.reason}
+            <p className="text-xs mt-1 italic" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+              {task.ai_metadata.reason}
             </p>
           )}
         </div>

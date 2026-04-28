@@ -78,12 +78,15 @@ def create_task(
 ):
     quadrant_map = {"q1": Quadrant.Q1, "q2": Quadrant.Q2, "q3": Quadrant.Q3, "q4": Quadrant.Q4}
 
-    # If user explicitly set a quadrant in the UI, use it directly (skip AI)
+    # Always call AI to get classification + description, even when user
+    # manually picked a quadrant — the AI result provides a description.
+    ai_result = ai_classify_task(req.title, req.description or "")
+
+    # If user explicitly set a quadrant, use it; otherwise use AI classification
     if req.quadrant:
         quadrant = quadrant_map.get(req.quadrant, Quadrant.Q4)
-        ai_result = {"quadrant": req.quadrant, "reason": "用户手动指定优先级", "summary": req.title.strip()[:20], "method": "manual"}
+        ai_result["quadrant"] = req.quadrant
     else:
-        ai_result = ai_classify_task(req.title, req.description or "")
         quadrant = quadrant_map.get(ai_result.get("quadrant", "q4"), Quadrant.Q4)
 
     # Sanitize AI reason — remove any mention of AI/model/tech names
@@ -91,9 +94,9 @@ def create_task(
         ai_result["reason"] = _sanitize_reason(ai_result["reason"])
 
     # Auto-generate description from AI summary when user did not provide one
-    description = req.description or ""
+    description = req.description.strip() if req.description else ""
     if not description and ai_result.get("summary"):
-        description = ai_result["summary"].strip()[:20]
+        description = ai_result["summary"].strip()
 
     # Parse due_date if provided
     due_date = None

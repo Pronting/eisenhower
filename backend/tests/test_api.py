@@ -162,6 +162,51 @@ class TestTasks:
         # Description contains "重要" -> Q2
         assert resp.json()["data"]["quadrant"] == "q2"
 
+    def test_create_task_auto_description(self, client, token):
+        """Task without description should get AI-generated description."""
+        resp = client.post("/api/tasks", json={
+            "title": "完成季度绩效报告",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        # Should have a non-empty description auto-generated
+        assert data["description"], "description should not be empty"
+        assert len(data["description"]) > 2, "description should be meaningful"
+
+    def test_create_task_manual_quadrant_auto_description(self, client, token):
+        """Manual quadrant + no description → AI still generates description."""
+        resp = client.post("/api/tasks", json={
+            "title": "阅读行业分析报告",
+            "quadrant": "q2",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["quadrant"] == "q2"
+        assert data["description"], "should auto-generate description even with manual quadrant"
+        assert len(data["description"]) > 2
+
+    def test_create_task_explicit_description_preserved(self, client, token):
+        """Explicitly provided description should not be overwritten."""
+        resp = client.post("/api/tasks", json={
+            "title": "随便",
+            "description": "这是我手写的描述内容",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["description"] == "这是我手写的描述内容"
+
+    def test_create_task_no_ai_manual_text(self, client, token):
+        """Metadata should not contain 'AI: 用户手动指定' style text."""
+        resp = client.post("/api/tasks", json={
+            "title": "整理桌面文件",
+            "quadrant": "q3",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        reason = data.get("ai_metadata", {}).get("reason", "")
+        assert "用户手动指定" not in reason
+        assert "AI:" not in reason
+
     # ------------------------------------------------------------------
     # List
     # ------------------------------------------------------------------
