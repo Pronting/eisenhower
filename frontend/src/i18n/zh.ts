@@ -122,7 +122,7 @@ const zh = {
   'landing.badge': '基于艾森豪威尔矩阵 · 科学优先排序',
   'landing.heroTitle1': '艾森豪威尔矩阵',
   'landing.heroTitle2': '让优先级有据可循',
-  'landing.heroSubtitle': '源自美国第34任总统德怀特·艾森豪威尔的决策框架，经史蒂芬·柯维《高效能人士的七个习惯》全球推广。研究证实：使用四象限法则可将工作效率提升 40%，决策疲劳降低 60%。',
+  'landing.heroSubtitle': '四象限优先级法则——帮你分清轻重缓急，效率提升40%。',
   'landing.cta.start': '免费开始使用',
   'landing.cta.login': '已有账号？登录',
   'landing.cta.dashboard': '进入仪表盘',
@@ -148,7 +148,7 @@ const zh = {
 
   // Landing - Science
   'landing.science.title': '艾森豪威尔矩阵的科学性',
-  'landing.science.subtitle': '源自美国总统德怀特·艾森豪威尔的决策框架，被《高效能人士的七个习惯》作者史蒂芬·柯维推广至全球。',
+  'landing.science.subtitle': '简单的四象限，科学的优先级管理。',
   'landing.science.q1.title': '重要且紧急',
   'landing.science.q1.desc': '危机、截止日期驱动的任务。立即处理，但尽量减少此类任务的比例。',
   'landing.science.q2.title': '重要不紧急',

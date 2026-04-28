@@ -124,7 +124,7 @@ const en: typeof zh = {
   'landing.badge': 'Powered by the Eisenhower Matrix · Science-Based Prioritization',
   'landing.heroTitle1': 'The Eisenhower Matrix',
   'landing.heroTitle2': 'Evidence-Based Prioritization',
-  'landing.heroSubtitle': 'Originating from President Dwight D. Eisenhower\'s decision framework, popularized by Stephen Covey\'s "The 7 Habits of Highly Effective People". Research shows: the 4-quadrant method can boost productivity by 40% and reduce decision fatigue by 60%.',
+  'landing.heroSubtitle': 'The 4-quadrant priority method — focus on what matters, boost productivity by 40%.',
   'landing.cta.start': 'Get Started Free',
   'landing.cta.login': 'Already have an account? Log in',
   'landing.cta.dashboard': 'Go to Dashboard',
@@ -150,7 +150,7 @@ const en: typeof zh = {
 
   // Landing - Science
   'landing.science.title': 'The Science Behind the Eisenhower Matrix',
-  'landing.science.subtitle': 'Originating from President Dwight D. Eisenhower\'s decision framework, popularized globally by Stephen Covey in "The 7 Habits of Highly Effective People".',
+  'landing.science.subtitle': 'Simple quadrants, scientific priority management.',
   'landing.science.q1.title': 'Important & Urgent',
   'landing.science.q1.desc': 'Crises, deadline-driven tasks. Handle immediately, but minimize this quadrant over time.',
   'landing.science.q2.title': 'Important, Not Urgent',
