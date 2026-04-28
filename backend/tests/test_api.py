@@ -440,3 +440,89 @@ class TestTasks:
     def test_unauthorized_delete_no_token(self, client):
         resp = client.delete("/api/tasks/1")
         assert resp.status_code in (401, 403)
+
+
+# ======================================================================
+# Statistics
+# ======================================================================
+
+class TestStats:
+    def test_quadrant_stats_empty(self, client, token):
+        resp = client.get("/api/stats/quadrant",
+                          headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data == {"q1": 0, "q2": 0, "q3": 0, "q4": 0}
+
+    def test_quadrant_stats_with_tasks(self, client, token):
+        """Quadrant stats reflect all tasks across quadrants."""
+        client.post("/api/tasks", json={"title": "老板的明天汇报"},
+                    headers={"Authorization": f"Bearer {token}"})  # -> Q1
+        client.post("/api/tasks", json={"title": "买零食"},
+                    headers={"Authorization": f"Bearer {token}"})  # -> Q4
+        resp = client.get("/api/stats/quadrant",
+                          headers={"Authorization": f"Bearer {token}"})
+        data = resp.json()["data"]
+        assert data["q1"] == 1
+        assert data["q4"] == 1
+
+    def test_quadrant_stats_by_due_date(self, client, token):
+        """Filter quadrant stats by a specific due_date."""
+        today = "2026-04-28"
+        tomorrow = "2026-04-29"
+
+        client.post("/api/tasks", json={
+            "title": "Today Q1", "quadrant": "q1", "due_date": today,
+        }, headers={"Authorization": f"Bearer {token}"})
+        client.post("/api/tasks", json={
+            "title": "Tomorrow Q4", "quadrant": "q4", "due_date": tomorrow,
+        }, headers={"Authorization": f"Bearer {token}"})
+
+        # Filter by today
+        resp_today = client.get(f"/api/stats/quadrant?due_date={today}",
+                                headers={"Authorization": f"Bearer {token}"})
+        today_data = resp_today.json()["data"]
+        assert today_data["q1"] == 1
+        assert today_data["q4"] == 0
+
+        # Filter by tomorrow
+        resp_tom = client.get(f"/api/stats/quadrant?due_date={tomorrow}",
+                              headers={"Authorization": f"Bearer {token}"})
+        tom_data = resp_tom.json()["data"]
+        assert tom_data["q4"] == 1
+        assert tom_data["q1"] == 0
+
+    def test_completion_stats(self, client, token):
+        client.post("/api/tasks", json={"title": "Task 1"},
+                    headers={"Authorization": f"Bearer {token}"})
+        client.post("/api/tasks", json={"title": "Task 2"},
+                    headers={"Authorization": f"Bearer {token}"})
+
+        resp = client.get("/api/stats/completion",
+                          headers={"Authorization": f"Bearer {token}"})
+        data = resp.json()["data"]
+        assert data["total"] == 2
+        assert data["completed"] == 0
+        assert data["pending"] == 2
+        assert data["rate"] == 0.0
+
+    def test_completion_stats_by_due_date(self, client, token):
+        """Completion stats filtered by due_date."""
+        today = "2026-04-28"
+        tomorrow = "2026-04-29"
+
+        client.post("/api/tasks", json={
+            "title": "Today Task", "due_date": today,
+        }, headers={"Authorization": f"Bearer {token}"})
+        client.post("/api/tasks", json={
+            "title": "Tomorrow Task", "due_date": tomorrow,
+        }, headers={"Authorization": f"Bearer {token}"})
+
+        resp = client.get(f"/api/stats/completion?due_date={today}",
+                          headers={"Authorization": f"Bearer {token}"})
+        data = resp.json()["data"]
+        assert data["total"] == 1
+
+    def test_stats_unauthorized(self, client):
+        resp = client.get("/api/stats/quadrant")
+        assert resp.status_code == 403
