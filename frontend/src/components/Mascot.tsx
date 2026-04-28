@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api'
 
@@ -344,46 +345,38 @@ export default function Mascot() {
     }
   }
 
-  const btnBase = "fixed left-4 z-[9999] flex items-center justify-center rounded-full text-base shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
+  const btnBase = "fixed left-4 z-[99999] flex items-center justify-center rounded-full text-base shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl pointer-events-auto"
 
   if (isMobile) return null
 
-  if (!ready) {
-    return (
-      <span
-        className={`${btnBase} bottom-24 w-10 h-10`}
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-medium)',
-          color: 'var(--text-muted)',
-          opacity: 0.3,
-        }}
-        title="看板娘加载中…"
-      >
-        ⏳
-      </span>
-    )
-  }
-
-  if (mascotHidden) {
-    return (
-      <button
-        onClick={handleShow}
-        className={`${btnBase} bottom-24 w-10 h-10`}
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-medium)',
-          color: 'var(--text-primary)',
-          opacity: 0.45,
-        }}
-        title="显示看板娘"
-      >
-        🦊
-      </button>
-    )
-  }
-
-  return (
+  const btn = !ready ? (
+    <span
+      className={`${btnBase} bottom-24 w-10 h-10`}
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border-medium)',
+        color: 'var(--text-muted)',
+        opacity: 0.3,
+      }}
+      title="看板娘加载中…"
+    >
+      ⏳
+    </span>
+  ) : mascotHidden ? (
+    <button
+      onClick={handleShow}
+      className={`${btnBase} bottom-24 w-10 h-10`}
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border-medium)',
+        color: 'var(--text-primary)',
+        opacity: 0.45,
+      }}
+      title="显示看板娘"
+    >
+      🦊
+    </button>
+  ) : (
     <button
       onClick={handleHide}
       className={`${btnBase} bottom-24 w-10 h-10`}
@@ -400,4 +393,6 @@ export default function Mascot() {
       </svg>
     </button>
   )
+
+  return createPortal(btn, document.body)
 }

@@ -128,9 +128,7 @@ export default function DashboardPage() {
       if (userToggledPriority) {
         body.quadrant = mapToQuadrant(isUrgent, isImportant)
       }
-      if (dueDate) {
-        body.due_date = dueDate
-      }
+      body.due_date = dueDate || todayStr()
       const data = await apiFetch('/tasks', {
         method: 'POST',
         body: JSON.stringify(body),

@@ -138,23 +138,36 @@ export default function StatsSection({ selectedDate }: Props) {
         </div>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="px-3 py-1.5 text-xs transition-colors max-md:hidden"
-          style={{ color: 'var(--text-muted)' }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:shadow-sm max-md:hidden"
+          style={{
+            color: 'var(--text-secondary)',
+            borderColor: 'var(--border-medium)',
+            backgroundColor: 'var(--bg-card)',
+          }}
         >
-          {collapsed ? t['stats.toggleExpand'] : t['stats.toggleCollapse']}
+          {collapsed ? (
+            <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg> {t['stats.toggleExpand']}</>
+          ) : (
+            <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6"/></svg> {t['stats.toggleCollapse']}</>
+          )}
         </button>
       </div>
 
       {/* Mobile collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="md:hidden w-full text-center py-1.5 text-xs mb-3 rounded-lg border"
+        className="md:hidden w-full flex items-center justify-center gap-1.5 text-center py-2 text-xs mb-3 rounded-lg border transition-all duration-200"
         style={{
-          color: 'var(--text-muted)',
+          color: 'var(--text-secondary)',
           borderColor: 'var(--border-medium)',
+          backgroundColor: 'var(--bg-card)',
         }}
       >
-        {collapsed ? t['stats.toggleExpand'] : t['stats.toggleCollapse']}
+        {collapsed ? (
+          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg> {t['stats.toggleExpand']}</>
+        ) : (
+          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6"/></svg> {t['stats.toggleCollapse']}</>
+        )}
       </button>
 
       <AnimatePresence>
