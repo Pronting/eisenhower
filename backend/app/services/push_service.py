@@ -122,7 +122,52 @@ def send_email(to_address: str, subject: str, html_body: str) -> tuple[bool, str
 # Push content & execution
 # ======================================================================
 
-def build_push_content(user_id: int, db: Session) -> str:
+QUADRANT_LABELS = {
+    "q1": "重要紧急 (Q1)",
+    "q2": "重要不紧急 (Q2)",
+    "q3": "紧急不重要 (Q3)",
+    "q4": "不紧急不重要 (Q4)",
+}
+
+QUADRANT_EMOJI = {"q1": "🔥", "q2": "🎯", "q3": "📤", "q4": "🗑"}
+
+
+def _greeting() -> str:
+    """Time-aware greeting in Chinese."""
+    h = datetime.now().hour
+    if h < 6:   return "夜深了，注意休息 🌙"
+    elif h < 9: return "早上好，新的一天开始了 ☀️"
+    elif h < 12: return "上午好，精力最充沛的时段 💪"
+    elif h < 14: return "中午好，休息一下再出发 🍜"
+    elif h < 18: return "下午好，效率高峰别浪费 ⚡"
+    elif h < 22: return "晚上好，回顾今天的收获 🌅"
+    else:        return "夜深了，明天再战 🌙"
+
+
+def _encouragement(pending: int, completed: int) -> str:
+    """Warm encouragement footer based on progress."""
+    if completed > 0 and pending == 0:
+        return "今天所有任务都完成了，做得很棒！明天继续保持 🎉"
+    if completed >= pending and pending > 0:
+        return f"已完成 {completed} 项任务，胜利在望，再加把劲！"
+    if pending > 0:
+        return "分清轻重缓急，一件一件来，你可以的 💪"
+    return "新的一天，从最重要的事开始。"
+
+
+def _render_quadrant_section(quadrant_key: str, tasks: list, limit: int = 5) -> str:
+    """Render a quadrant section with items."""
+    emoji = QUADRANT_EMOJI.get(quadrant_key, "")
+    label = QUADRANT_LABELS.get(quadrant_key, quadrant_key)
+    header = f"<h4>{emoji} {label}: {len(tasks)} 个</h4>"
+    items = ""
+    for t in tasks[:limit]:
+        status_icon = "✅" if (t.status and t.status.value == "completed") else "○"
+        items += f"<p style='margin:2px 0 2px 16px;color:#444;'>{status_icon} {t.title}</p>"
+    return header + items
+
+
+def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
     """Build push summary HTML from user's tasks due today."""
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
@@ -140,27 +185,75 @@ def build_push_content(user_id: int, db: Session) -> str:
     pending = [t for t in tasks if t.status and t.status.value == "pending"]
     completed = [t for t in tasks if t.status and t.status.value == "completed"]
 
+    greeting = _greeting()
+    encourag = _encouragement(len(pending), len(completed))
+
     lines = [
-        "<h3>今日任务概览</h3>",
-        f"<p>总计 {len(tasks)} 个任务 | 待完成 {len(pending)} 个 | 已完成 {len(completed)} 个</p>",
-        f"<h4>重要紧急 (Q1): {len(q1)} 个</h4>",
+        "<div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;padding:20px;color:#1a1a2e;'>",
+        f"<h2 style='margin-bottom:4px;'>{greeting}</h2>",
     ]
-    for t in q1[:5]:
-        lines.append(f"<p>&nbsp;&nbsp;&#8226; {t.title}</p>")
 
-    lines.append(f"<h4>重要不紧急 (Q2): {len(q2)} 个</h4>")
-    for t in q2[:5]:
-        lines.append(f"<p>&nbsp;&nbsp;&#8226; {t.title}</p>")
+    # AI daily summary
+    if ai_summary:
+        lines.append(
+            f"<div style='background:#f0f4ff;border-left:4px solid #6366f1;padding:10px 14px;margin:12px 0;border-radius:0 8px 8px 0;font-size:14px;color:#333;line-height:1.6;'>"
+            f"📋 {ai_summary}"
+            f"</div>"
+        )
 
-    lines.append(f"<h4>紧急不重要 (Q3): {len(q3)} 个</h4>")
-    lines.append(f"<h4>不紧急不重要 (Q4): {len(q4)} 个</h4>")
+    # Stats line
+    lines.append(
+        f"<p style='color:#555;font-size:14px;margin:8px 0 16px;'>"
+        f"📊 今日共 <strong>{len(tasks)}</strong> 个任务 · "
+        f"待完成 <strong>{len(pending)}</strong> 个 · "
+        f"已完成 <strong>{len(completed)}</strong> 个"
+        f"</p>"
+    )
+
+    # Quadrant sections
+    for qk in ("q1", "q2", "q3", "q4"):
+        qt = {"q1": q1, "q2": q2, "q3": q3, "q4": q4}[qk]
+        lines.append(_render_quadrant_section(qk, qt))
+
+    # Encouragement footer
+    lines.append(
+        f"<div style='margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;color:#888;font-size:13px;'>"
+        f"<p>{encourag}</p>"
+        f"<p style='margin-top:6px;font-size:11px;'>ishwe · 艾森豪威尔矩阵任务管理</p>"
+        f"</div>"
+    )
+    lines.append("</div>")
 
     return "".join(lines)
 
 
 def execute_push(push_config: PushConfig, user_id: int, db: Session) -> PushLog:
     """Execute a single push config and return a PushLog record."""
-    content = build_push_content(user_id, db)
+    # Try to generate AI summary (non-blocking — fall back to empty)
+    ai_summary = ""
+    try:
+        from app.agent.summarize import generate_daily_summary_v2
+
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        tasks = db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.due_date >= today_start,
+            Task.due_date < today_end,
+        ).all()
+        task_dicts = [{
+            "title": t.title,
+            "quadrant": t.quadrant.value if t.quadrant else "q4",
+            "status": t.status.value if t.status else "pending",
+            "updated_at": (t.updated_at.isoformat() if t.updated_at else ""),
+        } for t in tasks]
+
+        result = generate_daily_summary_v2(task_dicts, user_id)
+        ai_summary = result.get("summary", "")
+    except Exception:
+        pass  # AI summary is a nice-to-have, not critical
+
+    content = build_push_content(user_id, db, ai_summary)
 
     if push_config.push_type == "email":
         success, error = send_email(
