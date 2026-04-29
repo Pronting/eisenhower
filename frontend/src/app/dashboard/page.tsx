@@ -669,7 +669,7 @@ export default function DashboardPage() {
         />
 
         {/* Stats Section */}
-        <StatsSection selectedDate={selectedDate} />
+        <StatsSection selectedDate={selectedDate} dateFilter={dateFilter} />
 
         {/* AI Mascot */}
         <Mascot />

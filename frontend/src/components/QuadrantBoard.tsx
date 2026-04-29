@@ -352,7 +352,8 @@ export default function QuadrantBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
+      <div className="h-[55vh] sm:h-[60vh]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full" style={{ gridAutoRows: '1fr' }}>
         {quadrants.map((q, qi) => {
           const qTasks = tasks.filter(t => t.quadrant === q)
           return (
@@ -373,6 +374,7 @@ export default function QuadrantBoard({
             </motion.div>
           )
         })}
+        </div>
       </div>
 
       <DragOverlay dropAnimation={null}>

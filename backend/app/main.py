@@ -43,9 +43,19 @@ def _push_scheduler_loop():
     from app.models.models import PushConfig
     from app.services.push_service import execute_push
 
+    # Track which configs were already sent this minute to prevent duplicates
+    _sent_this_minute: set[tuple[int, str]] = set()  # {(config_id, "HH:MM"), ...}
+    _last_minute: str = ""
+
     while True:
         try:
             now = datetime.now().strftime("%H:%M")
+
+            # Reset tracking when the minute changes
+            if now != _last_minute:
+                _sent_this_minute.clear()
+                _last_minute = now
+
             db = SessionLocal()
             try:
                 configs = (
@@ -54,6 +64,10 @@ def _push_scheduler_loop():
                     .all()
                 )
                 for cfg in configs:
+                    key = (cfg.id, now)
+                    if key in _sent_this_minute:
+                        continue  # Already sent this minute — skip
+                    _sent_this_minute.add(key)
                     logger.info(f"Sending scheduled push: user={cfg.user_id} type={cfg.push_type}")
                     execute_push(cfg, cfg.user_id, db)
             finally:
@@ -72,6 +86,15 @@ async def http_exception_handler(request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"code": exc.status_code, "data": None, "message": exc.detail},
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc: Exception):
+    logger.exception("Unhandled exception")
+    return JSONResponse(
+        status_code=500,
+        content={"code": 500, "data": None, "message": "Internal Server Error"},
     )
 
 

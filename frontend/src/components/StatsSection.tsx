@@ -45,11 +45,11 @@ function CustomTooltip({ active, payload }: any) {
 
 interface Props {
   selectedDate: string
+  dateFilter: 'today' | 'all'
 }
 
-export default function StatsSection({ selectedDate }: Props) {
+export default function StatsSection({ selectedDate, dateFilter }: Props) {
   const { t } = useLang()
-  const [dimension, setDimension] = useState<'date' | 'total'>('date')
   const [collapsed, setCollapsed] = useState(false)
   const [barData, setBarData] = useState<any[]>([])
   const [completionRate, setCompletionRate] = useState(0)
@@ -60,7 +60,7 @@ export default function StatsSection({ selectedDate }: Props) {
   const fetchStats = async () => {
     setLoading(true)
     try {
-      const dateParam = dimension === 'date' ? `?due_date=${selectedDate}` : ''
+      const dateParam = dateFilter === 'today' ? `?due_date=${selectedDate}` : ''
       const [quadrantRes, completionRes, trendsRes] = await Promise.all([
         apiFetch(`/stats/quadrant${dateParam}`),
         apiFetch(`/stats/completion${dateParam}`),
@@ -97,7 +97,7 @@ export default function StatsSection({ selectedDate }: Props) {
 
   useEffect(() => {
     fetchStats()
-  }, [dimension, selectedDate])
+  }, [dateFilter, selectedDate])
 
   const rateMsg =
     completionRate >= 80 ? t['stats.great']
@@ -108,34 +108,9 @@ export default function StatsSection({ selectedDate }: Props) {
     <section className="mt-8">
       {/* Header with toggle and collapse */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-heading font-bold" style={{ color: 'var(--text-primary)' }}>
-            {t['stats.title']}
-          </h3>
-          {/* Dimension toggle */}
-          <div className="flex rounded-lg border p-0.5 ml-2" style={{ borderColor: 'var(--border-medium)' }}>
-            <button
-              onClick={() => setDimension('date')}
-              className="px-2 sm:px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
-              style={{
-                backgroundColor: dimension === 'date' ? 'var(--border-medium)' : 'transparent',
-                color: dimension === 'date' ? 'var(--text-primary)' : 'var(--text-muted)',
-              }}
-            >
-              {t['stats.dateDimension']}
-            </button>
-            <button
-              onClick={() => setDimension('total')}
-              className="px-2 sm:px-3 py-1 text-xs font-medium rounded-md transition-all duration-200"
-              style={{
-                backgroundColor: dimension === 'total' ? 'var(--border-medium)' : 'transparent',
-                color: dimension === 'total' ? 'var(--text-primary)' : 'var(--text-muted)',
-              }}
-            >
-              {t['stats.totalDimension']}
-            </button>
-          </div>
-        </div>
+        <h3 className="text-lg font-heading font-bold" style={{ color: 'var(--text-primary)' }}>
+          {t['stats.title']}
+        </h3>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:shadow-sm max-md:hidden"

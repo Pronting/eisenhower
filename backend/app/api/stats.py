@@ -26,7 +26,6 @@ def _apply_due_date_filter(query, due_date: Optional[str]):
         from sqlalchemy import or_, and_
         today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         return query.filter(or_(
-            Task.due_date.is_(None),
             and_(Task.is_long_term == 1, dt >= today),
             and_(Task.due_date >= dt, Task.due_date < dt + timedelta(days=1)),
         ))

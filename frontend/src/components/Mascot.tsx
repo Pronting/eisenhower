@@ -301,7 +301,13 @@ export default function Mascot() {
             if (canvas && !canvas.dataset.mascotReady) {
               canvas.dataset.mascotReady = '1'
               canvas.style.cursor = 'pointer'
+              canvas.style.pointerEvents = 'auto'
               canvas.addEventListener('click', showAdvice)
+            }
+            // Make the mascot container non-blocking for other UI elements
+            const container = canvas?.parentElement
+            if (container) {
+              container.style.pointerEvents = 'none'
             }
           }
         })
