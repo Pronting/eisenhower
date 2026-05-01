@@ -66,8 +66,33 @@ const QUADRANT_CONFIG: Record<string, QuadrantConfig> = {
   },
 }
 
-function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
+function todayStr(): string {
+  const d = new Date()
+  return d.toISOString().split('T')[0]
+}
+
+function dateAdd(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
+function TaskCard({ task, isDragging, onDateChange }: {
+  task: Task
+  isDragging?: boolean
+  onDateChange?: (id: number, date: string) => void
+}) {
   const isCompleted = task.status === 'completed'
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const { t } = useLang()
+
+  const datePresets = [
+    { label: t['task.dueDate.today'], value: todayStr() },
+    { label: t['task.dueDate.tomorrow'], value: dateAdd(1) },
+    { label: t['task.dueDate.thisWeek'], value: dateAdd(7) },
+    { label: t['task.dueDate.nextMonth'], value: dateAdd(30) },
+    { label: t['task.dueDate.noDue'], value: '' },
+  ]
 
   return (
     <div
@@ -81,16 +106,16 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
       style={{
         backgroundColor: isCompleted ? 'transparent' : 'var(--bg-card-hover)',
         borderColor: isCompleted ? 'var(--border-subtle)' : 'var(--border-medium)',
-        cursor: 'grab',
       }}
     >
       <div className="flex items-start gap-2.5">
         <div className="flex-1 min-w-0">
           <h4
-            className={`text-sm font-medium truncate ${
+            className={`text-sm font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${
               isCompleted ? 'line-through' : ''
             }`}
             style={{ color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)' }}
+            onClick={(e) => { e.stopPropagation(); setShowDatePicker(!showDatePicker) }}
           >
             {task.title}
           </h4>
@@ -100,15 +125,17 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
             </p>
           )}
           {task.due_date && (
-            <span
-              className="inline-block text-xs mt-1.5 px-1.5 py-0.5 rounded font-mono"
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowDatePicker(!showDatePicker) }}
+              className="inline-block text-xs mt-1.5 px-1.5 py-0.5 rounded font-mono cursor-pointer hover:opacity-80 transition-opacity"
               style={{
                 backgroundColor: 'var(--border-subtle)',
                 color: 'var(--text-muted)',
               }}
             >
               {task.due_date}
-            </span>
+            </button>
           )}
           {task.ai_metadata?.reason && (
             <p className="text-xs mt-1 italic" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
@@ -117,9 +144,9 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
           )}
         </div>
 
-        {/* Drag handle */}
+        {/* Drag handle indicator */}
         <div
-          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
+          className="drag-handle opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
           style={{ color: 'var(--text-muted)' }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -132,14 +159,64 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
           </svg>
         </div>
       </div>
+
+      {/* Date picker popover */}
+      {showDatePicker && onDateChange && (
+        <div
+          className="absolute left-0 right-0 top-full mt-1 z-50 p-3 rounded-xl border shadow-lg"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            borderColor: 'var(--border-medium)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {datePresets.map((opt) => (
+              <button
+                key={opt.value || 'none'}
+                type="button"
+                onClick={() => {
+                  onDateChange(task.id, opt.value)
+                  setShowDatePicker(false)
+                }}
+                className="px-2 py-1 text-xs rounded-lg border transition-all duration-200 hover:opacity-80"
+                style={{
+                  backgroundColor: task.due_date === opt.value ? 'var(--border-medium)' : 'transparent',
+                  borderColor: 'var(--border-medium)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <input
+            type="date"
+            defaultValue={task.due_date || ''}
+            className="w-full px-2 py-1.5 text-xs rounded-lg border"
+            style={{
+              backgroundColor: 'var(--bg-card-hover)',
+              borderColor: 'var(--border-medium)',
+              color: 'var(--text-primary)',
+            }}
+            onChange={(e) => {
+              if (e.target.value) {
+                onDateChange(task.id, e.target.value)
+                setShowDatePicker(false)
+              }
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
-function DraggableTask({ task, onDelete, onStatusChange }: {
+function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
   task: Task
   onDelete: (id: number) => void
   onStatusChange: (id: number, status: string) => void
+  onDateChange?: (id: number, date: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -154,7 +231,6 @@ function DraggableTask({ task, onDelete, onStatusChange }: {
   return (
     <motion.div
       ref={setNodeRef}
-      layout
       initial={{ opacity: 0, y: 10, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.97 }}
@@ -164,7 +240,7 @@ function DraggableTask({ task, onDelete, onStatusChange }: {
       {...listeners}
       {...attributes}
     >
-      <TaskCard task={task} isDragging={isDragging} />
+      <TaskCard task={task} isDragging={isDragging} onDateChange={onDateChange} />
       {/* Complete toggle */}
       <button
         onClick={() => onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
@@ -200,12 +276,14 @@ function QuadrantDropZone({
   tasks,
   onDelete,
   onStatusChange,
+  onDateChange,
   isOver,
 }: {
   quadrant: string
   tasks: Task[]
   onDelete: (id: number) => void
   onStatusChange: (id: number, status: string) => void
+  onDateChange?: (id: number, date: string) => void
   isOver: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: quadrant })
@@ -248,28 +326,27 @@ function QuadrantDropZone({
       </div>
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-        <AnimatePresence mode="popLayout">
-          {tasks.length === 0 ? (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-center py-12 font-mono"
-              style={{ color: 'var(--text-placeholder)' }}
-            >
-              {t['quadrant.empty']}
-            </motion.p>
-          ) : (
-            tasks.map(task => (
+      <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
+        {tasks.length === 0 ? (
+          <p
+            className="text-xs text-center py-12 font-mono"
+            style={{ color: 'var(--text-placeholder)' }}
+          >
+            {t['quadrant.empty']}
+          </p>
+        ) : (
+          <AnimatePresence>
+            {tasks.map(task => (
               <DraggableTask
                 key={task.id}
                 task={task}
                 onDelete={onDelete}
                 onStatusChange={onStatusChange}
+                onDateChange={onDateChange}
               />
-            ))
-          )}
-        </AnimatePresence>
+            ))}
+          </AnimatePresence>
+        )}
       </div>
     </div>
   )
@@ -280,11 +357,13 @@ export default function QuadrantBoard({
   onDelete,
   onStatusChange,
   onQuadrantChange,
+  onDateChange,
 }: {
   tasks: Task[]
   onDelete: (id: number) => void
   onStatusChange: (id: number, status: string) => void
   onQuadrantChange: (id: number, quadrant: string) => void
+  onDateChange?: (id: number, date: string) => void
 }) {
   const quadrants = ['q1', 'q2', 'q3', 'q4']
   const [activeId, setActiveId] = useState<number | null>(null)
@@ -353,7 +432,7 @@ export default function QuadrantBoard({
       onDragEnd={handleDragEnd}
     >
       <div className="h-[55vh] sm:h-[60vh]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full" style={{ gridAutoRows: '1fr' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full overflow-hidden" style={{ gridAutoRows: '1fr' }}>
         {quadrants.map((q, qi) => {
           const qTasks = tasks.filter(t => t.quadrant === q)
           return (
@@ -369,6 +448,7 @@ export default function QuadrantBoard({
                 tasks={qTasks}
                 onDelete={onDelete}
                 onStatusChange={onStatusChange}
+                onDateChange={onDateChange}
                 isOver={overQuadrant === q}
               />
             </motion.div>
