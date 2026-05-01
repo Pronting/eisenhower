@@ -14,10 +14,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.models import PushConfig, PushLog, Task
+from app.models.models import PushConfig, PushLog, Task, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -162,28 +163,31 @@ def _render_quadrant_section(quadrant_key: str, tasks: list, limit: int = 5) -> 
     header = f"<h4>{emoji} {label}: {len(tasks)} 个</h4>"
     items = ""
     for t in tasks[:limit]:
-        status_icon = "✅" if (t.status and t.status.value == "completed") else "○"
-        items += f"<p style='margin:2px 0 2px 16px;color:#444;'>{status_icon} {t.title}</p>"
+        items += f"<p style='margin:2px 0 2px 16px;color:#444;'>○ {t.title}</p>"
     return header + items
 
 
 def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
-    """Build push summary HTML from user's tasks due today."""
+    """Build push summary HTML from user's pending tasks (today, no date, or long-term)."""
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
 
     tasks = db.query(Task).filter(
         Task.user_id == user_id,
-        Task.due_date >= today_start,
-        Task.due_date < today_end,
+        Task.status == TaskStatus.PENDING,
+        or_(
+            and_(Task.due_date >= today_start, Task.due_date < today_end),
+            Task.due_date.is_(None),
+            Task.is_long_term == 1,
+        ),
     ).all()
 
     q1 = [t for t in tasks if t.quadrant and t.quadrant.value == "q1"]
     q2 = [t for t in tasks if t.quadrant and t.quadrant.value == "q2"]
     q3 = [t for t in tasks if t.quadrant and t.quadrant.value == "q3"]
     q4 = [t for t in tasks if t.quadrant and t.quadrant.value == "q4"]
-    pending = [t for t in tasks if t.status and t.status.value == "pending"]
-    completed = [t for t in tasks if t.status and t.status.value == "completed"]
+    pending = tasks
+    completed = []
 
     greeting = _greeting()
     encourag = _encouragement(len(pending), len(completed))
@@ -204,9 +208,7 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
     # Stats line
     lines.append(
         f"<p style='color:#555;font-size:14px;margin:8px 0 16px;'>"
-        f"📊 今日共 <strong>{len(tasks)}</strong> 个任务 · "
-        f"待完成 <strong>{len(pending)}</strong> 个 · "
-        f"已完成 <strong>{len(completed)}</strong> 个"
+        f"📊 待办任务 <strong>{len(tasks)}</strong> 个"
         f"</p>"
     )
 
@@ -238,8 +240,12 @@ def execute_push(push_config: PushConfig, user_id: int, db: Session) -> PushLog:
         today_end = today_start + timedelta(days=1)
         tasks = db.query(Task).filter(
             Task.user_id == user_id,
-            Task.due_date >= today_start,
-            Task.due_date < today_end,
+            Task.status == TaskStatus.PENDING,
+            or_(
+                and_(Task.due_date >= today_start, Task.due_date < today_end),
+                Task.due_date.is_(None),
+                Task.is_long_term == 1,
+            ),
         ).all()
         task_dicts = [{
             "title": t.title,
