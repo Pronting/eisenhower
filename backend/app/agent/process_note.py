@@ -6,10 +6,34 @@ and generates concise descriptions.
 """
 import json
 import logging
+import re
 from langchain_core.messages import SystemMessage, HumanMessage
 from app.agent.llm import get_llm
 
 logger = logging.getLogger(__name__)
+
+
+def _fallback_split(content: str) -> dict:
+    """Rule-based fallback when AI returns 0 tasks. Splits by common Chinese delimiters."""
+    # Split by newlines, Chinese commas, semicolons, colons, periods, or numbered lists
+    items = re.split(r'[\n,，;；：。]+|\d+[.、)]\s*', content)
+    items = [item.strip() for item in items if item.strip() and len(item.strip()) >= 2]
+
+    if not items:
+        return {"tasks": [], "error": "未识别到可执行的待办事项，请补充更多细节"}
+
+    tasks = []
+    for item in items[:10]:  # Cap at 10 tasks
+        title = item[:30] if len(item) > 30 else item
+        tasks.append({
+            "title": title,
+            "description": item if len(item) > 30 else "",
+            "quadrant": "q2",  # Default to important-not-urgent
+            "reason": "基于规则自动提取",
+        })
+
+    logger.info(f"Fallback split: extracted {len(tasks)} tasks from note")
+    return {"tasks": tasks}
 
 NOTE_SYSTEM_PROMPT = """You are an intelligent task extractor and Eisenhower Matrix classifier.
 
@@ -91,8 +115,8 @@ def process_note_to_tasks(content: str) -> dict:
     """
     llm = get_llm(temperature=0.1)
     if not llm:
-        logger.warning("LLM not available for note processing")
-        return {"tasks": [], "error": "AI service unavailable"}
+        logger.warning("LLM not available for note processing — no API key configured")
+        return {"tasks": [], "error": "AI 服务未配置，请在设置中添加 DeepSeek API Key"}
 
     try:
         resp = llm.invoke([
@@ -126,11 +150,21 @@ def process_note_to_tasks(content: str) -> dict:
             })
 
         logger.info(f"Note processed: extracted {len(sanitized)} tasks from note")
+
+        # If AI returned 0 tasks, try rule-based fallback
+        if len(sanitized) == 0:
+            logger.info("AI returned 0 tasks, trying fallback split")
+            return _fallback_split(content)
+
         return {"tasks": sanitized}
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse AI response as JSON: {raw[:200]}")
-        return {"tasks": [], "error": f"AI response parse error: {str(e)}"}
+        # Try fallback on JSON error
+        logger.info("AI response invalid, trying fallback split")
+        return _fallback_split(content)
     except Exception as e:
         logger.error(f"Note processing failed: {str(e)}")
-        return {"tasks": [], "error": str(e)}
+        # Try fallback on any error
+        logger.info("AI processing failed, trying fallback split")
+        return _fallback_split(content)

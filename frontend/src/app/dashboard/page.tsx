@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -92,12 +92,15 @@ export default function DashboardPage() {
   // Date filter — default to today
   const [dateFilter, setDateFilter] = useState<'today' | 'all'>('today')
   const [selectedDate, setSelectedDate] = useState(todayStr())
+  const mainRef = useRef<HTMLDivElement>(null)
+  const noteFormRef = useRef<HTMLDivElement>(null)
+  const newFormRef = useRef<HTMLFormElement>(null)
 
   const fetchTasks = useCallback(async () => {
     try {
-      let path = '/tasks'
+      let path = '/tasks?status=pending'
       if (dateFilter === 'today') {
-        path += `?due_date=${selectedDate}`
+        path += `&due_date=${selectedDate}`
       }
       const data = await apiFetch(path)
       setTasks(data.data || [])
@@ -116,6 +119,19 @@ export default function DashboardPage() {
     setUser(JSON.parse(u))
     fetchTasks().finally(() => setLoading(false))
   }, [router, fetchTasks])
+
+  // Scroll to form when it opens
+  useEffect(() => {
+    if (showNote) {
+      requestAnimationFrame(() => noteFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+    }
+  }, [showNote])
+
+  useEffect(() => {
+    if (showForm) {
+      requestAnimationFrame(() => newFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+    }
+  }, [showForm])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,6 +159,10 @@ export default function DashboardPage() {
         setDueDate('')
         setShowForm(false)
         setSuccessMsg('✓ ' + t['dashboard.confirmAdd'])
+        // Wait for React to re-render before scrolling
+        requestAnimationFrame(() => {
+          mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+        })
         setTimeout(() => setSuccessMsg(''), 2000)
       }
     } catch (err: any) {
@@ -167,7 +187,24 @@ export default function DashboardPage() {
         method: 'PUT',
         body: JSON.stringify({ status }),
       })
-      setTasks(prev => prev.map(t => (t.id === id ? { ...t, status } : t)))
+      // Completed tasks are auto-archived by backend, remove from list
+      if (status === 'completed') {
+        setTasks(prev => prev.filter(t => t.id !== id))
+      } else {
+        setTasks(prev => prev.map(t => (t.id === id ? { ...t, status } : t)))
+      }
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleDateChange = async (id: number, dueDate: string) => {
+    try {
+      await apiFetch(`/tasks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ due_date: dueDate || null }),
+      })
+      setTasks(prev => prev.map(t => (t.id === id ? { ...t, due_date: dueDate || undefined } : t)))
     } catch (err: any) {
       setError(err.message)
     }
@@ -201,13 +238,24 @@ export default function DashboardPage() {
     setNoteError('')
     try {
       // Step 1: AI analysis
+      console.log('[QuickNote] Sending content:', noteContent.trim().substring(0, 50))
       const processData = await apiFetch('/notes/process', {
         method: 'POST',
         body: JSON.stringify({ content: noteContent.trim() }),
       })
+      console.log('[QuickNote] Response:', processData)
+      // Check for backend-level error
+      if (processData.message && processData.message !== 'ok') {
+        setNoteError(processData.message)
+        setNoteConfirming(false)
+        return
+      }
       const noteTasks = processData.data?.tasks || []
+      console.log('[QuickNote] Tasks found:', noteTasks.length)
       if (noteTasks.length === 0) {
-        setNoteError(t['dashboard.quickNote.empty'])
+        // Show more specific error — could be AI issue or genuinely no tasks
+        const detail = processData.data?.error || processData.data?.detail
+        setNoteError(detail || t['dashboard.quickNote.empty'])
         setNoteConfirming(false)
         return
       }
@@ -225,6 +273,9 @@ export default function DashboardPage() {
         setNoteContent('')
 
         setShowNote(false)
+        requestAnimationFrame(() => {
+          mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+        })
       }
     } catch (err: any) {
       setNoteError(err.message)
@@ -279,7 +330,7 @@ export default function DashboardPage() {
         />
       </div>
       <Header username={user?.username || ''} onLogout={handleLogout} />
-      <main className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col overflow-y-auto">
+      <main ref={mainRef} className="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col overflow-y-auto">
         {/* Top bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
           <div>
@@ -336,6 +387,7 @@ export default function DashboardPage() {
                 setShowNote(!showNote)
                 if (showForm) setShowForm(false)
               }}
+              title={t['tooltip.quickNote']}
               className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md"
               style={{
                 backgroundColor: showNote ? 'var(--neon-blue)' : 'var(--bg-card)',
@@ -351,13 +403,14 @@ export default function DashboardPage() {
                 setShowForm(!showForm)
                 if (showNote) setShowNote(false)
               }}
+              title={t['tooltip.newTask']}
               className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md"
               style={{
                 backgroundColor: 'var(--text-primary)',
                 color: 'var(--bg-primary)',
               }}
             >
-              {showForm ? '✕ ' : '+ '}{t['dashboard.newTask']}
+              {showForm ? '✕ ' : ''}{t['dashboard.newTask']}
             </button>
           </div>
         </div>
@@ -382,17 +435,16 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
 
-        {/* Success toast */}
+        {/* Success toast — fixed position */}
         <AnimatePresence>
           {successMsg && (
             <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              className="p-3 rounded-xl mb-4 text-sm font-medium"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[calc(100%-2rem)] p-3 rounded-xl text-sm font-medium shadow-lg"
               style={{
-                backgroundColor: '#22c55e15',
-                borderColor: '#22c55e40',
+                backgroundColor: 'var(--bg-card)',
                 border: '1px solid #22c55e40',
                 color: '#22c55e',
               }}
@@ -406,10 +458,11 @@ export default function DashboardPage() {
         <AnimatePresence>
           {showNote && (
             <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              className="glass-sm p-4 mb-4 overflow-hidden"
+              ref={noteFormRef}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="glass-sm p-4 mb-4"
             >
               {/* Note input */}
               <textarea
@@ -483,11 +536,12 @@ export default function DashboardPage() {
         <AnimatePresence>
           {showForm && (
             <motion.form
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
+              ref={newFormRef}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               onSubmit={handleCreate}
-              className="glass-sm p-4 mb-4 overflow-hidden"
+              className="glass-sm p-4 mb-4"
             >
               <input
                 type="text"
@@ -666,6 +720,7 @@ export default function DashboardPage() {
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
           onQuadrantChange={handleQuadrantChange}
+          onDateChange={handleDateChange}
         />
 
         {/* Stats Section */}

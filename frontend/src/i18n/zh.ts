@@ -32,7 +32,7 @@ const zh = {
 
   // Dashboard
   'dashboard.title': '仪表盘',
-  'dashboard.newTask': '+ 新建任务',
+  'dashboard.newTask': '新建任务',
   'dashboard.whatToDo': '需要做什么？',
   'dashboard.description': '描述（可选）',
   'dashboard.cancel': '取消',
@@ -70,6 +70,18 @@ const zh = {
   'task.dueDate.nextHalfYear': '未来半年',
   'task.dueDate.noDue': '无截止日期',
   'task.dragHint': '拖拽任务到其他象限',
+  'task.editDate': '修改日期',
+
+  // Tooltips
+  'tooltip.quickNote': '快速记录待办事项，AI 自动拆分归类',
+  'tooltip.newTask': '新建单个任务',
+
+  // Archive
+  'nav.archive': '归档',
+  'archive.title': '任务归档',
+  'archive.empty': '暂无归档任务',
+  'archive.restore': '恢复',
+  'archive.archivedOn': '归档于',
 
   // Quadrants
   'quadrant.q1.label': '立即执行',

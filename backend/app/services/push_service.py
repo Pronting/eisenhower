@@ -168,7 +168,7 @@ def _render_quadrant_section(quadrant_key: str, tasks: list, limit: int = 5) -> 
 
 
 def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
-    """Build push summary HTML from user's pending tasks (today, no date, or long-term)."""
+    """Build push summary HTML from user's pending tasks (today or long-term)."""
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
 
@@ -177,7 +177,6 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
         Task.status == TaskStatus.PENDING,
         or_(
             and_(Task.due_date >= today_start, Task.due_date < today_end),
-            Task.due_date.is_(None),
             Task.is_long_term == 1,
         ),
     ).all()
@@ -243,7 +242,6 @@ def execute_push(push_config: PushConfig, user_id: int, db: Session) -> PushLog:
             Task.status == TaskStatus.PENDING,
             or_(
                 and_(Task.due_date >= today_start, Task.due_date < today_end),
-                Task.due_date.is_(None),
                 Task.is_long_term == 1,
             ),
         ).all()

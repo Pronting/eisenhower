@@ -1,11 +1,13 @@
 """AI Agent API endpoints."""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from pydantic import BaseModel, Field
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.models import User, Task
+from app.models.models import User, Task, TaskStatus
 from app.schemas.schemas import ApiResponse
 from app.agent.classify import ai_classify
 from app.agent.summarize import (
@@ -37,8 +39,19 @@ def _task_to_dict(task: Task) -> dict:
     }
 
 
-def get_user_tasks(user: User, db: Session) -> list[dict]:
-    tasks = db.query(Task).filter(Task.user_id == user.id).all()
+def get_user_tasks(user: User, db: Session, today_only: bool = False) -> list[dict]:
+    query = db.query(Task).filter(Task.user_id == user.id)
+    if today_only:
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        query = query.filter(
+            Task.status == TaskStatus.PENDING,
+            or_(
+                and_(Task.due_date >= today, Task.due_date < tomorrow),
+                Task.is_long_term == 1,
+            ),
+        )
+    tasks = query.all()
     return [_task_to_dict(t) for t in tasks]
 
 
@@ -84,8 +97,8 @@ def summary_v2(user: User = Depends(get_current_user), db: Session = Depends(get
 
 @router.post("/summary-v2/daily")
 def summary_v2_daily(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Generate today's summary only (all tasks, ≤50 Chinese chars, cached)."""
-    tasks = get_user_tasks(user, db)
+    """Generate today's summary only (today's pending tasks, ≤50 Chinese chars, cached)."""
+    tasks = get_user_tasks(user, db, today_only=True)
     result = generate_daily_summary_v2(tasks, user.id)
     return ApiResponse(data=result)
 
@@ -101,7 +114,7 @@ def summary_v2_todo(user: User = Depends(get_current_user), db: Session = Depend
 @router.post("/advice")
 def mascot_advice(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Generate quick AI advice for the dashboard mascot (v4 flash, <2s)."""
-    tasks = get_user_tasks(user, db)
+    tasks = get_user_tasks(user, db, today_only=True)
     result = generate_advice(tasks)
     return ApiResponse(data=result)
 

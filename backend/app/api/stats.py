@@ -59,7 +59,8 @@ def completion_stats(
     base_q = db.query(Task).filter(Task.user_id == user.id)
     base_q = _apply_due_date_filter(base_q, due_date)
     total = base_q.count()
-    completed = base_q.filter(Task.status == TaskStatus.COMPLETED).count()
+    from sqlalchemy import or_
+    completed = base_q.filter(or_(Task.status == TaskStatus.COMPLETED, Task.status == TaskStatus.ARCHIVED)).count()
     pending = total - completed
     rate = round(completed / total * 100, 2) if total > 0 else 0.0
     return ApiResponse(data={

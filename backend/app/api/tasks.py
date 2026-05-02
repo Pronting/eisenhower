@@ -56,7 +56,11 @@ def list_tasks(
     if quadrant:
         query = query.filter(Task.quadrant == quadrant)
     if status:
-        query = query.filter(Task.status == status)
+        if ',' in status:
+            statuses = [s.strip() for s in status.split(',')]
+            query = query.filter(Task.status.in_(statuses))
+        else:
+            query = query.filter(Task.status == status)
     if due_date:
         try:
             dt = datetime.strptime(due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -142,7 +146,12 @@ def update_task(
     if req.quadrant is not None:
         task.quadrant = Quadrant(req.quadrant)
     if req.status is not None:
-        task.status = TaskStatus(req.status)
+        new_status = TaskStatus(req.status)
+        # Auto-archive when marking as completed
+        if new_status == TaskStatus.COMPLETED:
+            task.status = TaskStatus.ARCHIVED
+        else:
+            task.status = new_status
     if req.due_date is not None:
         try:
             task.due_date = datetime.strptime(req.due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) if req.due_date else None

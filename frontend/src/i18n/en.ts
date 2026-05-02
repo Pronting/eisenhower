@@ -34,7 +34,7 @@ const en: typeof zh = {
 
   // Dashboard
   'dashboard.title': 'Dashboard',
-  'dashboard.newTask': '+ New Task',
+  'dashboard.newTask': 'New Task',
   'dashboard.whatToDo': 'What needs to be done?',
   'dashboard.description': 'Description (optional)',
   'dashboard.cancel': 'Cancel',
@@ -72,6 +72,18 @@ const en: typeof zh = {
   'task.dueDate.nextHalfYear': 'Next 6 Months',
   'task.dueDate.noDue': 'No due date',
   'task.dragHint': 'Drag tasks to other quadrants',
+  'task.editDate': 'Edit date',
+
+  // Tooltips
+  'tooltip.quickNote': 'Quick note: AI splits and classifies your todos',
+  'tooltip.newTask': 'Create a new task',
+
+  // Archive
+  'nav.archive': 'Archive',
+  'archive.title': 'Task Archive',
+  'archive.empty': 'No archived tasks',
+  'archive.restore': 'Restore',
+  'archive.archivedOn': 'Archived on',
 
   // Quadrants
   'quadrant.q1.label': 'Do First',
