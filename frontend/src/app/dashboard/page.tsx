@@ -140,10 +140,8 @@ export default function DashboardPage() {
     setError('')
     try {
       const body: Record<string, any> = { title: title.trim(), description }
-      // Only send quadrant when user explicitly toggled priority
-      if (userToggledPriority) {
-        body.quadrant = mapToQuadrant(isUrgent, isImportant)
-      }
+      // Send quadrant: user-selected or default to q4
+      body.quadrant = userToggledPriority ? mapToQuadrant(isUrgent, isImportant) : 'q4'
       body.due_date = dueDate || todayStr()
       const data = await apiFetch('/tasks', {
         method: 'POST',
