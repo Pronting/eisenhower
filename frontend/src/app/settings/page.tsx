@@ -36,6 +36,15 @@ interface PushConfig {
   push_type: string
   address: string
   push_time: string
+  enabled: boolean
+}
+
+interface EditingConfig {
+  id: number
+  push_type: string
+  address: string
+  push_time: string
+  enabled: boolean
 }
 
 export default function SettingsPage() {
@@ -49,6 +58,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState<EditingConfig>({ id: 0, push_type: 'email', address: '', push_time: '09:00', enabled: true })
 
   useEffect(() => {
     const u = localStorage.getItem('user')
@@ -101,6 +112,46 @@ export default function SettingsPage() {
       setConfigs(prev => prev.filter(c => c.id !== id))
     } catch (err: any) {
       setError(err.message)
+    }
+  }
+
+  const startEdit = (config: PushConfig) => {
+    setEditingId(config.id)
+    setEditForm({
+      id: config.id,
+      push_type: config.push_type,
+      address: config.address,
+      push_time: config.push_time,
+      enabled: config.enabled,
+    })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+  }
+
+  const handleUpdate = async () => {
+    if (!editForm.address.trim()) return
+    setSaving(true)
+    setError('')
+    try {
+      const data = await apiFetch(`/push-configs/${editingId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          push_type: editForm.push_type,
+          address: editForm.address.trim(),
+          push_time: editForm.push_time,
+          enabled: editForm.enabled,
+        }),
+      })
+      if (data.data) {
+        setConfigs(prev => prev.map(c => c.id === editingId ? data.data : c))
+        setEditingId(null)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -164,6 +215,103 @@ export default function SettingsPage() {
               ) : (
                 <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
                   {configs.map(config => (
+                    editingId === config.id ? (
+                      <motion.div
+                        key={`edit-${config.id}`}
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="py-4 space-y-3"
+                      >
+                        <div className="flex gap-3">
+                          <div className="flex gap-2">
+                            {['email', 'webhook'].map(type => (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => setEditForm(prev => ({ ...prev, push_type: type }))}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200"
+                                style={{
+                                  backgroundColor: editForm.push_type === type ? 'var(--border-medium)' : 'transparent',
+                                  borderColor: 'var(--border-medium)',
+                                  color: editForm.push_type === type ? 'var(--text-primary)' : 'var(--text-muted)',
+                                }}
+                              >
+                                {type === 'email' ? '📧 Email' : '🔗 Webhook'}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            type={editForm.push_type === 'email' ? 'email' : 'url'}
+                            value={editForm.address}
+                            onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                            placeholder={editForm.push_type === 'email' ? 'your@email.com' : 'https://hooks.example.com/...'}
+                            className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 transition-all duration-200"
+                            style={{
+                              backgroundColor: 'var(--bg-card-hover)',
+                              border: '1px solid var(--border-medium)',
+                              color: 'var(--text-primary)',
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>{t['settings.pushTime']}</label>
+                            <input
+                              type="time"
+                              value={editForm.push_time}
+                              onChange={e => setEditForm(prev => ({ ...prev, push_time: e.target.value }))}
+                              className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 transition-all duration-200"
+                              style={{
+                                backgroundColor: 'var(--bg-card-hover)',
+                                border: '1px solid var(--border-medium)',
+                                color: 'var(--text-primary)',
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditForm(prev => ({ ...prev, enabled: !prev.enabled }))}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-all duration-200"
+                            style={{
+                              backgroundColor: editForm.enabled ? '#22c55e10' : 'transparent',
+                              borderColor: editForm.enabled ? '#22c55e40' : 'var(--border-medium)',
+                              color: editForm.enabled ? '#22c55e' : 'var(--text-muted)',
+                            }}
+                          >
+                            <div
+                              className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                              style={{
+                                borderColor: editForm.enabled ? '#22c55e' : 'var(--border-medium)',
+                                backgroundColor: editForm.enabled ? '#22c55e' : 'transparent',
+                              }}
+                            >
+                              {editForm.enabled && (
+                                <svg width="6" height="6" viewBox="0 0 12 12" fill="none">
+                                  <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                              )}
+                            </div>
+                            {editForm.enabled ? t['settings.enabled'] : t['settings.disabled']}
+                          </button>
+                          <div className="flex-1" />
+                          <button
+                            onClick={handleUpdate}
+                            disabled={saving || !editForm.address.trim()}
+                            className="px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all duration-200"
+                            style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                          >
+                            {saving ? t['settings.saving'] : t['settings.update']}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-3 py-1.5 text-xs rounded-lg border transition-all duration-200"
+                            style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
+                          >
+                            {t['settings.cancel']}
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
                     <motion.div
                       key={config.id}
                       initial={{ opacity: 0, x: -10 }}
@@ -186,15 +334,30 @@ export default function SettingsPage() {
                         {config.push_time && (
                           <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{config.push_time}</span>
                         )}
+                        {!config.enabled && (
+                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#ef444410', color: '#ef4444' }}>
+                            {t['settings.disabled']}
+                          </span>
+                        )}
                       </div>
-                      <button
-                        onClick={() => handleDelete(config.id)}
-                        className="opacity-0 group-hover:opacity-100 text-xs transition-all duration-300"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {t['settings.delete']}
-                      </button>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <button
+                          onClick={() => startEdit(config)}
+                          className="text-xs transition-all duration-200 hover:underline"
+                          style={{ color: 'var(--neon-blue)' }}
+                        >
+                          {t['settings.edit']}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(config.id)}
+                          className="text-xs transition-all duration-200 hover:underline"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {t['settings.delete']}
+                        </button>
+                      </div>
                     </motion.div>
+                    )
                   ))}
                 </div>
               )}

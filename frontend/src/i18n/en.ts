@@ -123,6 +123,11 @@ const en: typeof zh = {
   'settings.save': 'Add Configuration',
   'settings.saving': 'Saving...',
   'settings.delete': 'Delete',
+  'settings.edit': 'Edit',
+  'settings.update': 'Save',
+  'settings.cancel': 'Cancel',
+  'settings.enabled': 'Enabled',
+  'settings.disabled': 'Disabled',
 
   // Theme
   'theme.light': 'Light',

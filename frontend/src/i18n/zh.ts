@@ -121,6 +121,11 @@ const zh = {
   'settings.save': '添加配置',
   'settings.saving': '保存中...',
   'settings.delete': '删除',
+  'settings.edit': '编辑',
+  'settings.update': '保存',
+  'settings.cancel': '取消',
+  'settings.enabled': '启用',
+  'settings.disabled': '已禁用',
 
   // Theme
   'theme.light': '浅色',
