@@ -11,6 +11,7 @@ AGENTS.md
 .cursor/
 .copilot/
 .github/copilot-instructions.md
+docs/superpowers/
 
 # =====================
 # 密钥 & 环境变量
