@@ -1,0 +1,12 @@
+node_modules
+.next
+.env.local
+.env*.local
+npm-debug.log*
+ishwe.db
+*.db
+.git
+.gitignore
+.eslintrc.json
+tsconfig.json
+README.md
