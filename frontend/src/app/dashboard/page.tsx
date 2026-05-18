@@ -142,7 +142,7 @@ export default function DashboardPage() {
       const body: Record<string, any> = { title: title.trim(), description }
       // Send quadrant: user-selected or default to q4
       body.quadrant = userToggledPriority ? mapToQuadrant(isUrgent, isImportant) : 'q4'
-      body.due_date = dueDate || todayStr()
+      body.due_date = dueDate || null
       const data = await apiFetch('/tasks', {
         method: 'POST',
         body: JSON.stringify(body),

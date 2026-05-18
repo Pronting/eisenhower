@@ -152,10 +152,9 @@ def update_task(
         else:
             task.status = new_status
     if req.due_date is not None:
-        try:
-            task.due_date = datetime.strptime(req.due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) if req.due_date else None
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {req.due_date}. Expected YYYY-MM-DD.")
+        task.due_date = datetime.strptime(req.due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) if req.due_date else None
+    elif req.due_date is None and 'due_date' in (req.model_fields_set or set()):
+        task.due_date = None
 
     db.commit()
     db.refresh(task)
