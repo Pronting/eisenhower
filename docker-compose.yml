@@ -6,10 +6,10 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=sqlite:///./ishwe.db
+      - DATABASE_URL=sqlite:///./data/ishwe.db
       - TZ=Asia/Shanghai
     volumes:
-      - db-data:/app
+      - db-data:/app/data
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
 

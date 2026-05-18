@@ -23,12 +23,12 @@ jobs:
           script: |
             cd /home/ubuntu/ishwe
 
-            # 拉取最新代码（fetch + reset 比 pull 更可靠）
+            # 拉取最新代码
             git config --global http.version HTTP/1.1
             git fetch origin master
             git reset --hard FETCH_HEAD
 
-            # 停止旧容器并同步构建（等待构建完成后再启动）
+            # 重新构建并重启容器
             sudo docker compose down --timeout 30
             sudo docker compose build
             sudo docker compose up -d
