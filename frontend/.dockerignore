@@ -7,6 +7,4 @@ ishwe.db
 *.db
 .git
 .gitignore
-.eslintrc.json
-tsconfig.json
 README.md
