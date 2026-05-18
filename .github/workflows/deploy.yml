@@ -19,6 +19,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          command_timeout: 10m
           script: |
             cd /home/ubuntu/ishwe
 
@@ -27,9 +28,10 @@ jobs:
             git fetch origin master
             git reset --hard FETCH_HEAD
 
-            # 停止旧容器（超时30秒强制停止）并重新构建
+            # 停止旧容器并同步构建（等待构建完成后再启动）
             sudo docker compose down --timeout 30
-            sudo docker compose up -d --build
+            sudo docker compose build
+            sudo docker compose up -d
 
             # 清理悬空镜像
             sudo docker image prune -f
