@@ -66,9 +66,10 @@ def list_tasks(
             dt = datetime.strptime(due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
             raise HTTPException(status_code=422, detail=f"Invalid date format: {due_date}. Expected YYYY-MM-DD.")
-        from sqlalchemy import or_, and_
+        from sqlalchemy import or_, and_, null
         query = query.filter(or_(
             Task.is_long_term == 1,
+            Task.due_date == null(),
             and_(Task.due_date >= dt, Task.due_date < dt + timedelta(days=1)),
         ))
     tasks = query.order_by(Task.created_at.desc()).all()
