@@ -19,18 +19,17 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          script_stop: true
           script: |
             cd /home/ubuntu/ishwe
 
-            # 暂存本地修改，避免 pull 冲突
+            # 暂存本地修改
             git stash --include-untracked
 
-            # 修复 HTTP/2 问题后拉取
+            # 修复 TLS 问题后拉取
             git config --global http.version HTTP/1.1
             git pull origin master
 
-            # 重新构建并重启容器（需要 sudo）
+            # 重新构建并重启容器
             sudo docker compose up -d --build
 
             # 清理悬空镜像
