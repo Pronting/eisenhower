@@ -27,9 +27,8 @@ jobs:
             git fetch origin master
             git reset --hard FETCH_HEAD
 
-            # 清理构建缓存并重新构建（避免旧缓存导致代码未更新）
-            sudo docker builder prune -f
-            sudo docker compose up -d --build --no-cache --force-recreate
+            # 重新构建并重启容器
+            sudo docker compose up -d --build --force-recreate
 
             # 清理悬空镜像
             sudo docker image prune -f
