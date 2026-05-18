@@ -27,8 +27,9 @@ jobs:
             git fetch origin master
             git reset --hard FETCH_HEAD
 
-            # 重新构建并重启容器
-            sudo docker compose up -d --build --force-recreate
+            # 停止旧容器（超时30秒强制停止）并重新构建
+            sudo docker compose down --timeout 30
+            sudo docker compose up -d --build
 
             # 清理悬空镜像
             sudo docker image prune -f
