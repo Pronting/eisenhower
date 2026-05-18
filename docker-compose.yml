@@ -7,6 +7,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=sqlite:///./ishwe.db
+      - TZ=Asia/Shanghai
     volumes:
       - db-data:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
