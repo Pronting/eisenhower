@@ -130,8 +130,6 @@ QUADRANT_LABELS = {
     "q4": "不紧急不重要 (Q4)",
 }
 
-QUADRANT_EMOJI = {"q1": "", "q2": "", "q3": "", "q4": ""}
-
 
 def _greeting() -> str:
     """Time-aware greeting in Chinese."""
@@ -162,7 +160,7 @@ def _render_quadrant_section(quadrant_key: str, tasks: list, limit: int = 5) -> 
     header = f"<h4>{label}: {len(tasks)} 个</h4>"
     items = ""
     for t in tasks[:limit]:
-        items += f"<p style='margin:2px 0 2px 16px;color:#444;'>○ {t.title}</p>"
+        items += f'<p style="margin:2px 0 2px 16px;color:#444;">○ {t.title}</p>'
     return header + items
 
 
@@ -191,21 +189,21 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
     encourag = _encouragement(len(pending), len(completed))
 
     lines = [
-        "<div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;padding:20px;color:#1a1a2e;'>",
-        f"<h2 style='margin-bottom:4px;'>{greeting}</h2>",
+        '<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;padding:20px;color:#1a1a2e;">',
+        f'<h2 style="margin-bottom:4px;">{greeting}</h2>',
     ]
 
     # AI daily summary
     if ai_summary:
         lines.append(
-            f"<div style='background:#f0f4ff;border-left:4px solid #6366f1;padding:10px 14px;margin:12px 0;border-radius:0 8px 8px 0;font-size:14px;color:#333;line-height:1.6;'>"
+            f'<div style="background:#f0f4ff;border-left:4px solid #6366f1;padding:10px 14px;margin:12px 0;border-radius:0 8px 8px 0;font-size:14px;color:#333;line-height:1.6;">'
             f"<strong>AI 每日摘要</strong><br>{ai_summary}"
             f"</div>"
         )
 
     # Stats line
     lines.append(
-        f"<p style='color:#555;font-size:14px;margin:8px 0 16px;'>"
+        f'<p style="color:#555;font-size:14px;margin:8px 0 16px;">'
         f"待办任务 <strong>{len(tasks)}</strong> 个"
         f"</p>"
     )
@@ -217,15 +215,15 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
 
     # Encouragement
     lines.append(
-        f"<p style='margin-top:20px;text-align:center;color:#888;font-size:13px;'>{encourag}</p>"
+        f'<p style="margin-top:20px;text-align:center;color:#888;font-size:13px;">{encourag}</p>'
     )
 
     # CTA button
     lines.append(
-        "<div style='text-align:center;margin:24px 0;'>"
-        "<a href='http://106.53.173.60:8080/dashboard' "
-        "style='display:inline-block;padding:12px 28px;background:#6366f1;color:#fff;"
-        "text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;'>"
+        '<div style="text-align:center;margin:24px 0;">'
+        '<a href="http://106.53.173.60:8080/dashboard" '
+        'style="display:inline-block;padding:12px 28px;background:#6366f1;color:#fff;'
+        'text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">'
         "进入工作台"
         "</a>"
         "</div>"
@@ -233,11 +231,10 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
 
     # Footer
     lines.append(
-        "<div style='margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;"
-        "text-align:center;color:#999;font-size:12px;line-height:1.6;'>"
+        '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;'
+        'text-align:center;color:#999;font-size:12px;line-height:1.6;">'
         "<p>ishwe — 艾森豪威尔矩阵任务管理</p>"
-        "<p><a href='http://106.53.173.60:8080/dashboard' style='color:#6366f1;text-decoration:none;'>进入工作台</a></p>"
-        "<p style='margin-top:8px;'>如不想收到此类邮件，可前往设置关闭推送</p>"
+        '<p style="margin-top:8px;">如不想收到此类邮件，可前往设置关闭推送</p>'
         "</div>"
     )
     lines.append("</div>")
