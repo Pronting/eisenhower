@@ -289,7 +289,7 @@ export default function ArchivePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleRestore(task.id)}
                             className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:opacity-80"

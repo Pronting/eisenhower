@@ -413,13 +413,13 @@ export default function SettingsPage() {
                                 {/* Inline toggle */}
                                 <button
                                   onClick={() => toggleEnabled(config)}
-                                  className="relative w-9 h-5 rounded-full transition-all duration-200"
+                                  className="relative w-10 h-6 rounded-full transition-all duration-200"
                                   style={{
                                     backgroundColor: config.enabled ? '#22c55e' : 'var(--border-medium)',
                                   }}
                                 >
                                   <motion.div
-                                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm"
+                                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm"
                                     animate={{ left: config.enabled ? '18px' : '2px' }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                                   />
@@ -433,17 +433,17 @@ export default function SettingsPage() {
 
                                 <div className="flex-1" />
 
-                                <div className="flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
+                                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover/row:opacity-100 transition-all duration-300">
                                   <button
                                     onClick={() => startEdit(config)}
-                                    className="text-xs transition-all duration-200 hover:underline"
+                                    className="text-xs px-2 py-1.5 min-h-[44px] flex items-center transition-all duration-200 hover:underline"
                                     style={{ color: 'var(--neon-blue)' }}
                                   >
                                     {t['settings.edit']}
                                   </button>
                                   <button
                                     onClick={() => handleDelete(config.id, group)}
-                                    className="text-xs transition-all duration-200 hover:underline"
+                                    className="text-xs px-2 py-1.5 min-h-[44px] flex items-center transition-all duration-200 hover:underline"
                                     style={{ color: deleteConfirm === config.id ? '#ef4444' : 'var(--text-muted)' }}
                                   >
                                     {deleteConfirm === config.id ? t['settings.deleteLastConfirm'] : t['settings.delete']}
@@ -536,7 +536,7 @@ export default function SettingsPage() {
                       key={type}
                       type="button"
                       onClick={() => setPushType(type)}
-                      className="px-4 py-2 rounded-xl text-sm font-medium border transition-all duration-300"
+                      className="px-4 py-2 min-h-[44px] rounded-xl text-sm font-medium border transition-all duration-300"
                       style={{
                         backgroundColor: pushType === type ? 'var(--border-medium)' : 'transparent',
                         borderColor: pushType === type ? 'var(--border-medium)' : 'var(--border-medium)',
@@ -588,7 +588,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 text-sm font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
+                className="px-5 py-2.5 min-h-[44px] text-sm font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-md"
                 style={{
                   backgroundColor: 'var(--text-primary)',
                   color: 'var(--bg-primary)',
