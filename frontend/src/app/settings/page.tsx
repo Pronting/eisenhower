@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
@@ -79,6 +79,7 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [highlightGroup, setHighlightGroup] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
+  const timerRef = useRef<NodeJS.Timeout[]>([])
 
   const groups = useMemo(() => groupConfigs(configs), [configs])
 
@@ -92,6 +93,12 @@ export default function SettingsPage() {
     setUser(JSON.parse(u))
     fetchConfigs()
   }, [router])
+
+  useEffect(() => {
+    return () => {
+      timerRef.current.forEach(clearTimeout)
+    }
+  }, [])
 
   const fetchConfigs = async () => {
     try {
@@ -140,8 +147,11 @@ export default function SettingsPage() {
           setHighlightGroup(groupKey)
           setSuccessMessage(t['settings.addedToExisting'])
           // Auto-clear highlight after 5 seconds
-          setTimeout(() => setHighlightGroup(null), 5000)
-          setTimeout(() => setSuccessMessage(''), 5000)
+          timerRef.current.forEach(clearTimeout)
+          timerRef.current = [
+            setTimeout(() => setHighlightGroup(null), 5000),
+            setTimeout(() => setSuccessMessage(''), 5000),
+          ]
         }
 
         setAddress('')
