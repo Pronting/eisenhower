@@ -130,40 +130,37 @@ QUADRANT_LABELS = {
     "q4": "不紧急不重要 (Q4)",
 }
 
-QUADRANT_EMOJI = {"q1": "🔥", "q2": "🎯", "q3": "📤", "q4": "🗑"}
-
 
 def _greeting() -> str:
     """Time-aware greeting in Chinese."""
     h = datetime.now().hour
-    if h < 6:   return "夜深了，注意休息 🌙"
-    elif h < 9: return "早上好，新的一天开始了 ☀️"
-    elif h < 12: return "上午好，精力最充沛的时段 💪"
-    elif h < 14: return "中午好，休息一下再出发 🍜"
-    elif h < 18: return "下午好，效率高峰别浪费 ⚡"
-    elif h < 22: return "晚上好，回顾今天的收获 🌅"
-    else:        return "夜深了，明天再战 🌙"
+    if h < 6:   return "夜深了，注意休息"
+    elif h < 9: return "早上好，新的一天开始了"
+    elif h < 12: return "上午好，精力最充沛的时段"
+    elif h < 14: return "中午好，休息一下再出发"
+    elif h < 18: return "下午好，效率高峰别浪费"
+    elif h < 22: return "晚上好，回顾今天的收获"
+    else:        return "夜深了，明天再战"
 
 
 def _encouragement(pending: int, completed: int) -> str:
     """Warm encouragement footer based on progress."""
     if completed > 0 and pending == 0:
-        return "今天所有任务都完成了，做得很棒！明天继续保持 🎉"
+        return "今天所有任务都完成了，做得很棒！明天继续保持"
     if completed >= pending and pending > 0:
         return f"已完成 {completed} 项任务，胜利在望，再加把劲！"
     if pending > 0:
-        return "分清轻重缓急，一件一件来，你可以的 💪"
+        return "分清轻重缓急，一件一件来，你可以的"
     return "新的一天，从最重要的事开始。"
 
 
 def _render_quadrant_section(quadrant_key: str, tasks: list, limit: int = 5) -> str:
     """Render a quadrant section with items."""
-    emoji = QUADRANT_EMOJI.get(quadrant_key, "")
     label = QUADRANT_LABELS.get(quadrant_key, quadrant_key)
-    header = f"<h4>{emoji} {label}: {len(tasks)} 个</h4>"
+    header = f"<h4>{label}: {len(tasks)} 个</h4>"
     items = ""
     for t in tasks[:limit]:
-        items += f"<p style='margin:2px 0 2px 16px;color:#444;'>○ {t.title}</p>"
+        items += f'<p style="margin:2px 0 2px 16px;color:#444;">○ {t.title}</p>'
     return header + items
 
 
@@ -192,22 +189,22 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
     encourag = _encouragement(len(pending), len(completed))
 
     lines = [
-        "<div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;padding:20px;color:#1a1a2e;'>",
-        f"<h2 style='margin-bottom:4px;'>{greeting}</h2>",
+        '<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:560px;padding:20px;color:#1a1a2e;">',
+        f'<h2 style="margin-bottom:4px;">{greeting}</h2>',
     ]
 
     # AI daily summary
     if ai_summary:
         lines.append(
-            f"<div style='background:#f0f4ff;border-left:4px solid #6366f1;padding:10px 14px;margin:12px 0;border-radius:0 8px 8px 0;font-size:14px;color:#333;line-height:1.6;'>"
-            f"📋 {ai_summary}"
+            f'<div style="background:#f0f4ff;border-left:4px solid #6366f1;padding:10px 14px;margin:12px 0;border-radius:0 8px 8px 0;font-size:14px;color:#333;line-height:1.6;">'
+            f"<strong>AI 每日摘要</strong><br>{ai_summary}"
             f"</div>"
         )
 
     # Stats line
     lines.append(
-        f"<p style='color:#555;font-size:14px;margin:8px 0 16px;'>"
-        f"📊 待办任务 <strong>{len(tasks)}</strong> 个"
+        f'<p style="color:#555;font-size:14px;margin:8px 0 16px;">'
+        f"待办任务 <strong>{len(tasks)}</strong> 个"
         f"</p>"
     )
 
@@ -216,12 +213,29 @@ def build_push_content(user_id: int, db: Session, ai_summary: str = "") -> str:
         qt = {"q1": q1, "q2": q2, "q3": q3, "q4": q4}[qk]
         lines.append(_render_quadrant_section(qk, qt))
 
-    # Encouragement footer
+    # Encouragement
     lines.append(
-        f"<div style='margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;color:#888;font-size:13px;'>"
-        f"<p>{encourag}</p>"
-        f"<p style='margin-top:6px;font-size:11px;'>ishwe · 艾森豪威尔矩阵任务管理</p>"
-        f"</div>"
+        f'<p style="margin-top:20px;text-align:center;color:#888;font-size:13px;">{encourag}</p>'
+    )
+
+    # CTA button
+    lines.append(
+        '<div style="text-align:center;margin:24px 0;">'
+        '<a href="http://106.53.173.60:8080/dashboard" '
+        'style="display:inline-block;padding:12px 28px;background:#6366f1;color:#fff;'
+        'text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">'
+        "进入工作台"
+        "</a>"
+        "</div>"
+    )
+
+    # Footer
+    lines.append(
+        '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;'
+        'text-align:center;color:#999;font-size:12px;line-height:1.6;">'
+        "<p>ishwe — 艾森豪威尔矩阵任务管理</p>"
+        '<p style="margin-top:8px;">如不想收到此类邮件，可前往设置关闭推送</p>'
+        "</div>"
     )
     lines.append("</div>")
 
