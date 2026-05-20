@@ -238,6 +238,14 @@ const en: typeof zh = {
   // Landing - Footer
   'landing.footer.github': 'GitHub',
   'landing.footer.copyright': '© 2026 ishwe. All rights reserved.',
+
+  // Validation
+  'validation.email.required': 'Email is required',
+  'validation.email.invalid': 'Invalid email format',
+  'validation.password.required': 'Password is required',
+  'validation.password.minLength': 'Password must be at least 8 characters',
+  'validation.password.noAllDigits': 'Password cannot be all numbers',
+  'validation.turnstile.required': 'Please complete the verification',
 }
 
 export default en
