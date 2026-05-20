@@ -6,6 +6,11 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'ishwe — Eisenhower Matrix',
   description: 'AI-powered task prioritization with Eisenhower Matrix',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon-32x32.png',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
