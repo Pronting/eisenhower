@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useLang } from '@/i18n/LanguageContext'
 import ThemeToggle from '@/components/ThemeToggle'
+import TurnstileWidget from '@/components/TurnstileWidget'
+import { validateEmail, validatePassword } from '@/lib/validators'
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api'
 
@@ -16,16 +18,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Client-side validation
+    const emailErr = validateEmail(email)
+    if (emailErr) { setError(t[emailErr]); setLoading(false); return }
+    const pwErr = validatePassword(password)
+    if (pwErr) { setError(t[pwErr]); setLoading(false); return }
+
     try {
       const res = await fetch(`${API}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstile_token: turnstileToken || undefined }),
       })
       const text = await res.text()
       let data: any
@@ -140,6 +150,8 @@ export default function LoginPage() {
             >
               {loading ? t['login.loading'] : t['login.button']}
             </button>
+
+            <TurnstileWidget onVerify={setTurnstileToken} />
           </form>
 
           <p className="text-center text-sm mt-6" style={{ color: 'var(--text-muted)' }}>

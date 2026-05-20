@@ -236,6 +236,14 @@ const zh = {
   // Landing - Footer
   'landing.footer.github': 'GitHub',
   'landing.footer.copyright': '© 2026 ishwe. All rights reserved.',
+
+  // Validation
+  'validation.email.required': '请输入邮箱地址',
+  'validation.email.invalid': '邮箱格式不正确',
+  'validation.password.required': '请输入密码',
+  'validation.password.minLength': '密码长度不能少于 8 位',
+  'validation.password.noAllDigits': '密码不能为纯数字',
+  'validation.turnstile.required': '请完成人机验证',
 }
 
 export default zh
