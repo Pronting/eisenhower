@@ -126,6 +126,12 @@ const zh = {
   'settings.cancel': '取消',
   'settings.enabled': '启用',
   'settings.disabled': '已禁用',
+  'settings.addTime': '添加时间',
+  'settings.maxTimesReached': '最多支持 3 个推送时间',
+  'settings.timePoint': '时间点',
+  'settings.noConfigsHint': '添加你的第一个推送配置',
+  'settings.deleteLastConfirm': '删除最后一个时间点将移除整组配置，确定继续？',
+  'settings.addFirstConfig': '添加你的第一个推送配置',
 
   // Theme
   'theme.light': '浅色',

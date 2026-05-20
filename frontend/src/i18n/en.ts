@@ -128,6 +128,12 @@ const en: typeof zh = {
   'settings.cancel': 'Cancel',
   'settings.enabled': 'Enabled',
   'settings.disabled': 'Disabled',
+  'settings.addTime': 'Add Time',
+  'settings.maxTimesReached': 'Max 3 push times supported',
+  'settings.timePoint': 'Time Point',
+  'settings.noConfigsHint': 'Add your first push configuration',
+  'settings.deleteLastConfirm': 'Deleting the last time point will remove the entire group. Continue?',
+  'settings.addFirstConfig': 'Add your first push configuration',
 
   // Theme
   'theme.light': 'Light',

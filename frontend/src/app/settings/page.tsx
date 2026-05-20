@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
@@ -39,12 +39,26 @@ interface PushConfig {
   enabled: boolean
 }
 
-interface EditingConfig {
-  id: number
-  push_type: string
+interface ConfigGroup {
   address: string
-  push_time: string
-  enabled: boolean
+  push_type: string
+  configs: PushConfig[]
+}
+
+function groupConfigs(configs: PushConfig[]): ConfigGroup[] {
+  const groups = new Map<string, ConfigGroup>()
+  for (const config of configs) {
+    const key = `${config.push_type}:${config.address}`
+    if (!groups.has(key)) {
+      groups.set(key, { address: config.address, push_type: config.push_type, configs: [] })
+    }
+    groups.get(key)!.configs.push(config)
+  }
+  // Sort time points within each group (early → late)
+  for (const group of groups.values()) {
+    group.configs.sort((a, b) => a.push_time.localeCompare(b.push_time))
+  }
+  return Array.from(groups.values())
 }
 
 export default function SettingsPage() {
@@ -59,7 +73,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<EditingConfig>({ id: 0, push_type: 'email', address: '', push_time: '09:00', enabled: true })
+  const [editForm, setEditForm] = useState({ push_type: 'email', address: '', push_time: '09:00', enabled: true })
+  const [addingTimeFor, setAddingTimeFor] = useState<string | null>(null)
+  const [newTime, setNewTime] = useState('09:00')
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+
+  const groups = useMemo(() => groupConfigs(configs), [configs])
 
   useEffect(() => {
     const u = localStorage.getItem('user')
@@ -106,10 +125,61 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleAddTime = async (group: ConfigGroup) => {
+    if (group.configs.length >= 3) {
+      setError(t['settings.maxTimesReached'])
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const data = await apiFetch('/push-configs', {
+        method: 'POST',
+        body: JSON.stringify({ push_type: group.push_type, address: group.address, push_time: newTime }),
+      })
+      if (data.data) {
+        setConfigs(prev => [...prev, data.data])
+        setAddingTimeFor(null)
+        setNewTime('09:00')
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: number, group: ConfigGroup) => {
+    // Confirm if deleting the last time point in a group
+    if (group.configs.length === 1) {
+      if (deleteConfirm !== id) {
+        setDeleteConfirm(id)
+        return
+      }
+    }
     try {
       await apiFetch(`/push-configs/${id}`, { method: 'DELETE' })
       setConfigs(prev => prev.filter(c => c.id !== id))
+      setDeleteConfirm(null)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const toggleEnabled = async (config: PushConfig) => {
+    try {
+      const data = await apiFetch(`/push-configs/${config.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          push_type: config.push_type,
+          address: config.address,
+          push_time: config.push_time,
+          enabled: !config.enabled,
+        }),
+      })
+      if (data.data) {
+        setConfigs(prev => prev.map(c => c.id === config.id ? data.data : c))
+      }
     } catch (err: any) {
       setError(err.message)
     }
@@ -118,7 +188,6 @@ export default function SettingsPage() {
   const startEdit = (config: PushConfig) => {
     setEditingId(config.id)
     setEditForm({
-      id: config.id,
       push_type: config.push_type,
       address: config.address,
       push_time: config.push_time,
@@ -196,7 +265,7 @@ export default function SettingsPage() {
             </motion.div>
           )}
 
-          {/* Push Configs List */}
+          {/* Push Configs - Grouped Cards */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -208,58 +277,187 @@ export default function SettingsPage() {
             </h3>
 
             <AnimatePresence mode="popLayout">
-              {configs.length === 0 ? (
-                <p className="text-center py-10 font-mono text-sm" style={{ color: 'var(--text-placeholder)' }}>
-                  — {t['settings.noConfigs']} —
-                </p>
+              {groups.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="font-mono text-sm mb-3" style={{ color: 'var(--text-placeholder)' }}>
+                    — {t['settings.noConfigs']} —
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {t['settings.noConfigsHint']}
+                  </p>
+                </div>
               ) : (
-                <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {configs.map(config => (
-                    editingId === config.id ? (
+                <div className="space-y-4">
+                  {groups.map(group => {
+                    const groupKey = `${group.push_type}:${group.address}`
+                    const isAddingTime = addingTimeFor === groupKey
+                    const canAddTime = group.configs.length < 3
+
+                    return (
                       <motion.div
-                        key={`edit-${config.id}`}
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="py-4 space-y-3"
+                        key={groupKey}
+                        layout
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="rounded-xl border p-4"
+                        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-card)' }}
                       >
-                        <div className="flex gap-3">
-                          <div className="flex gap-2">
-                            {['email', 'webhook'].map(type => (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() => setEditForm(prev => ({ ...prev, push_type: type }))}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200"
-                                style={{
-                                  backgroundColor: editForm.push_type === type ? 'var(--border-medium)' : 'transparent',
-                                  borderColor: 'var(--border-medium)',
-                                  color: editForm.push_type === type ? 'var(--text-primary)' : 'var(--text-muted)',
-                                }}
-                              >
-                                {type === 'email' ? '📧 Email' : '🔗 Webhook'}
-                              </button>
-                            ))}
-                          </div>
-                          <input
-                            type={editForm.push_type === 'email' ? 'email' : 'url'}
-                            value={editForm.address}
-                            onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))}
-                            placeholder={editForm.push_type === 'email' ? 'your@email.com' : 'https://hooks.example.com/...'}
-                            className="flex-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 transition-all duration-200"
+                        {/* Group Header */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border"
                             style={{
-                              backgroundColor: 'var(--bg-card-hover)',
-                              border: '1px solid var(--border-medium)',
-                              color: 'var(--text-primary)',
+                              color: group.push_type === 'email' ? 'var(--neon-blue)' : 'var(--neon-purple)',
+                              borderColor: group.push_type === 'email' ? '#3b82f620' : '#8b5cf620',
+                              backgroundColor: group.push_type === 'email' ? '#3b82f605' : '#8b5cf605',
                             }}
-                          />
+                          >
+                            {group.push_type}
+                          </span>
+                          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {group.address}
+                          </span>
+                          <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
+                            {group.configs.length}/3 {t['settings.timePoint']}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs" style={{ color: 'var(--text-muted)' }}>{t['settings.pushTime']}</label>
+
+                        {/* Time Points List */}
+                        <div className="space-y-2">
+                          {group.configs.map(config => (
+                            editingId === config.id ? (
+                              <motion.div
+                                key={`edit-${config.id}`}
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 p-2 rounded-lg"
+                                style={{ backgroundColor: 'var(--bg-card-hover)' }}
+                              >
+                                <input
+                                  type="time"
+                                  value={editForm.push_time}
+                                  onChange={e => setEditForm(prev => ({ ...prev, push_time: e.target.value }))}
+                                  className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 transition-all duration-200"
+                                  style={{
+                                    backgroundColor: 'var(--bg-card)',
+                                    border: '1px solid var(--border-medium)',
+                                    color: 'var(--text-primary)',
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setEditForm(prev => ({ ...prev, enabled: !prev.enabled }))}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-all duration-200"
+                                  style={{
+                                    backgroundColor: editForm.enabled ? '#22c55e10' : 'transparent',
+                                    borderColor: editForm.enabled ? '#22c55e40' : 'var(--border-medium)',
+                                    color: editForm.enabled ? '#22c55e' : 'var(--text-muted)',
+                                  }}
+                                >
+                                  <div
+                                    className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                                    style={{
+                                      borderColor: editForm.enabled ? '#22c55e' : 'var(--border-medium)',
+                                      backgroundColor: editForm.enabled ? '#22c55e' : 'transparent',
+                                    }}
+                                  >
+                                    {editForm.enabled && (
+                                      <svg width="6" height="6" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  {editForm.enabled ? t['settings.enabled'] : t['settings.disabled']}
+                                </button>
+                                <div className="flex-1" />
+                                <button
+                                  onClick={handleUpdate}
+                                  disabled={saving}
+                                  className="px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all duration-200"
+                                  style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                                >
+                                  {saving ? t['settings.saving'] : t['settings.update']}
+                                </button>
+                                <button
+                                  onClick={cancelEdit}
+                                  className="px-3 py-1.5 text-xs rounded-lg border transition-all duration-200"
+                                  style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
+                                >
+                                  {t['settings.cancel']}
+                                </button>
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                key={config.id}
+                                layout
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex items-center gap-3 p-2 rounded-lg group/row"
+                                style={{ backgroundColor: 'var(--bg-card-hover)' }}
+                              >
+                                <span className="text-sm font-mono" style={{ color: 'var(--text-primary)' }}>
+                                  {config.push_time}
+                                </span>
+
+                                {/* Inline toggle */}
+                                <button
+                                  onClick={() => toggleEnabled(config)}
+                                  className="relative w-9 h-5 rounded-full transition-all duration-200"
+                                  style={{
+                                    backgroundColor: config.enabled ? '#22c55e' : 'var(--border-medium)',
+                                  }}
+                                >
+                                  <motion.div
+                                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm"
+                                    animate={{ left: config.enabled ? '18px' : '2px' }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                  />
+                                </button>
+
+                                {!config.enabled && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#ef444410', color: '#ef4444' }}>
+                                    {t['settings.disabled']}
+                                  </span>
+                                )}
+
+                                <div className="flex-1" />
+
+                                <div className="flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300">
+                                  <button
+                                    onClick={() => startEdit(config)}
+                                    className="text-xs transition-all duration-200 hover:underline"
+                                    style={{ color: 'var(--neon-blue)' }}
+                                  >
+                                    {t['settings.edit']}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(config.id, group)}
+                                    className="text-xs transition-all duration-200 hover:underline"
+                                    style={{ color: deleteConfirm === config.id ? '#ef4444' : 'var(--text-muted)' }}
+                                  >
+                                    {deleteConfirm === config.id ? t['settings.deleteLastConfirm'] : t['settings.delete']}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )
+                          ))}
+                        </div>
+
+                        {/* Add Time Button / Form */}
+                        {isAddingTime ? (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center gap-3 mt-3 pt-3"
+                            style={{ borderTop: '1px solid var(--border-subtle)' }}
+                          >
                             <input
                               type="time"
-                              value={editForm.push_time}
-                              onChange={e => setEditForm(prev => ({ ...prev, push_time: e.target.value }))}
+                              value={newTime}
+                              onChange={e => setNewTime(e.target.value)}
                               className="rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 transition-all duration-200"
                               style={{
                                 backgroundColor: 'var(--bg-card-hover)',
@@ -267,98 +465,41 @@ export default function SettingsPage() {
                                 color: 'var(--text-primary)',
                               }}
                             />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setEditForm(prev => ({ ...prev, enabled: !prev.enabled }))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-all duration-200"
-                            style={{
-                              backgroundColor: editForm.enabled ? '#22c55e10' : 'transparent',
-                              borderColor: editForm.enabled ? '#22c55e40' : 'var(--border-medium)',
-                              color: editForm.enabled ? '#22c55e' : 'var(--text-muted)',
-                            }}
-                          >
-                            <div
-                              className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
-                              style={{
-                                borderColor: editForm.enabled ? '#22c55e' : 'var(--border-medium)',
-                                backgroundColor: editForm.enabled ? '#22c55e' : 'transparent',
-                              }}
+                            <button
+                              onClick={() => handleAddTime(group)}
+                              disabled={saving}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all duration-200"
+                              style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}
                             >
-                              {editForm.enabled && (
-                                <svg width="6" height="6" viewBox="0 0 12 12" fill="none">
-                                  <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                                </svg>
-                              )}
-                            </div>
-                            {editForm.enabled ? t['settings.enabled'] : t['settings.disabled']}
-                          </button>
-                          <div className="flex-1" />
+                              {saving ? t['settings.saving'] : t['settings.save']}
+                            </button>
+                            <button
+                              onClick={() => { setAddingTimeFor(null); setNewTime('09:00') }}
+                              className="px-3 py-1.5 text-xs rounded-lg border transition-all duration-200"
+                              style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
+                            >
+                              {t['settings.cancel']}
+                            </button>
+                          </motion.div>
+                        ) : canAddTime ? (
                           <button
-                            onClick={handleUpdate}
-                            disabled={saving || !editForm.address.trim()}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 transition-all duration-200"
-                            style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                            onClick={() => setAddingTimeFor(groupKey)}
+                            className="flex items-center gap-1.5 mt-3 pt-3 text-xs transition-all duration-200 hover:opacity-80"
+                            style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--neon-blue)' }}
                           >
-                            {saving ? t['settings.saving'] : t['settings.update']}
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                            {t['settings.addTime']}
                           </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="px-3 py-1.5 text-xs rounded-lg border transition-all duration-200"
-                            style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
-                          >
-                            {t['settings.cancel']}
-                          </button>
-                        </div>
+                        ) : (
+                          <p className="mt-3 pt-3 text-xs" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                            {t['settings.maxTimesReached']}
+                          </p>
+                        )}
                       </motion.div>
-                    ) : (
-                    <motion.div
-                      key={config.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="flex items-center justify-between py-3 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border"
-                          style={{
-                            color: config.push_type === 'email' ? 'var(--neon-blue)' : 'var(--neon-purple)',
-                            borderColor: config.push_type === 'email' ? '#3b82f620' : '#8b5cf620',
-                            backgroundColor: config.push_type === 'email' ? '#3b82f605' : '#8b5cf605',
-                          }}
-                        >
-                          {config.push_type}
-                        </span>
-                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{config.address}</span>
-                        {config.push_time && (
-                          <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{config.push_time}</span>
-                        )}
-                        {!config.enabled && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#ef444410', color: '#ef4444' }}>
-                            {t['settings.disabled']}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <button
-                          onClick={() => startEdit(config)}
-                          className="text-xs transition-all duration-200 hover:underline"
-                          style={{ color: 'var(--neon-blue)' }}
-                        >
-                          {t['settings.edit']}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(config.id)}
-                          className="text-xs transition-all duration-200 hover:underline"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          {t['settings.delete']}
-                        </button>
-                      </div>
-                    </motion.div>
                     )
-                  ))}
+                  })}
                 </div>
               )}
             </AnimatePresence>
