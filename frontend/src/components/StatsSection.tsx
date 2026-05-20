@@ -46,9 +46,10 @@ function CustomTooltip({ active, payload }: any) {
 interface Props {
   selectedDate: string
   dateFilter: 'today' | 'all'
+  refreshKey?: number
 }
 
-export default function StatsSection({ selectedDate, dateFilter }: Props) {
+export default function StatsSection({ selectedDate, dateFilter, refreshKey }: Props) {
   const { t } = useLang()
   const [collapsed, setCollapsed] = useState(false)
   const [barData, setBarData] = useState<any[]>([])
@@ -97,7 +98,7 @@ export default function StatsSection({ selectedDate, dateFilter }: Props) {
 
   useEffect(() => {
     fetchStats()
-  }, [dateFilter, selectedDate])
+  }, [dateFilter, selectedDate, refreshKey])
 
   const rateMsg =
     completionRate >= 80 ? t['stats.great']

@@ -92,6 +92,7 @@ export default function DashboardPage() {
   // Date filter — default to today
   const [dateFilter, setDateFilter] = useState<'today' | 'all'>('today')
   const [selectedDate, setSelectedDate] = useState(todayStr())
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0)
   const mainRef = useRef<HTMLDivElement>(null)
   const noteFormRef = useRef<HTMLDivElement>(null)
   const newFormRef = useRef<HTMLFormElement>(null)
@@ -149,6 +150,7 @@ export default function DashboardPage() {
       })
       if (data.data) {
         setTasks(prev => [data.data, ...prev])
+        setStatsRefreshKey(prev => prev + 1)
         setTitle('')
         setDescription('')
         setIsUrgent(false)
@@ -174,6 +176,7 @@ export default function DashboardPage() {
     try {
       await apiFetch(`/tasks/${id}`, { method: 'DELETE' })
       setTasks(prev => prev.filter(t => t.id !== id))
+      setStatsRefreshKey(prev => prev + 1)
     } catch (err: any) {
       setError(err.message)
     }
@@ -191,6 +194,7 @@ export default function DashboardPage() {
       } else {
         setTasks(prev => prev.map(t => (t.id === id ? { ...t, status } : t)))
       }
+      setStatsRefreshKey(prev => prev + 1)
     } catch (err: any) {
       setError(err.message)
     }
@@ -203,6 +207,7 @@ export default function DashboardPage() {
         body: JSON.stringify({ due_date: dueDate || null }),
       })
       setTasks(prev => prev.map(t => (t.id === id ? { ...t, due_date: dueDate || undefined } : t)))
+      setStatsRefreshKey(prev => prev + 1)
     } catch (err: any) {
       setError(err.message)
     }
@@ -216,6 +221,7 @@ export default function DashboardPage() {
         method: 'PUT',
         body: JSON.stringify({ quadrant }),
       })
+      setStatsRefreshKey(prev => prev + 1)
     } catch (err: any) {
       // Revert on error — refetch
       fetchTasks()
@@ -268,6 +274,7 @@ export default function DashboardPage() {
       if (confirmData.data) {
         const newTasks = confirmData.data.tasks || []
         setTasks(prev => [...newTasks, ...prev])
+        setStatsRefreshKey(prev => prev + 1)
         setNoteContent('')
 
         setShowNote(false)
@@ -722,7 +729,7 @@ export default function DashboardPage() {
         />
 
         {/* Stats Section */}
-        <StatsSection selectedDate={selectedDate} dateFilter={dateFilter} />
+        <StatsSection selectedDate={selectedDate} dateFilter={dateFilter} refreshKey={statsRefreshKey} />
 
         {/* AI Mascot */}
         <Mascot />
