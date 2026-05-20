@@ -133,6 +133,8 @@ const en: typeof zh = {
   'settings.timePoint': 'Time Point',
   'settings.noConfigsHint': 'Add your first push configuration',
   'settings.deleteLastConfirm': 'Deleting the last time point will remove the entire group. Continue?',
+  'settings.addedToExisting': 'Added! This email already has multiple time points. Click "Add Time" below to add more.',
+  'settings.addTimeHint': 'Click to add more times',
 
   // Theme
   'theme.light': 'Light',

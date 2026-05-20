@@ -131,6 +131,8 @@ const zh = {
   'settings.timePoint': '时间点',
   'settings.noConfigsHint': '添加你的第一个推送配置',
   'settings.deleteLastConfirm': '删除最后一个时间点将移除整组配置，确定继续？',
+  'settings.addedToExisting': '已添加！该邮箱已有多个时间点，点击下方「添加时间」可继续添加',
+  'settings.addTimeHint': '点击这里添加更多时间',
 
   // Theme
   'theme.light': '浅色',
