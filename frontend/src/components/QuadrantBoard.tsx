@@ -6,6 +6,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDraggable,
@@ -140,7 +141,7 @@ function TaskCard({ task, isDragging, onDateChange }: {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowDatePicker(!showDatePicker) }}
-              className="inline-flex items-center gap-1 text-xs mt-1.5 px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity opacity-0 group-hover/item:opacity-60"
+              className="inline-flex items-center gap-1 text-xs mt-1.5 px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity sm:opacity-0 sm:group-hover/item:opacity-60"
               style={{
                 color: 'var(--text-muted)',
               }}
@@ -160,7 +161,7 @@ function TaskCard({ task, isDragging, onDateChange }: {
 
         {/* Drag handle indicator */}
         <div
-          className="drag-handle opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
+          className="drag-handle sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
           style={{ color: 'var(--text-muted)' }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -258,7 +259,7 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       {/* Complete toggle */}
       <button
         onClick={() => onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
-        className="absolute top-2 right-2 opacity-0 group-hover/item:opacity-100 transition-opacity duration-200 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+        className="absolute top-2 right-2 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 w-5 h-5 rounded-full border-2 flex items-center justify-center"
         style={{
           borderColor: task.status === 'completed' ? '#22c55e' : 'var(--border-medium)',
           backgroundColor: task.status === 'completed' ? '#22c55e20' : 'transparent',
@@ -274,7 +275,7 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       {/* Delete */}
       <button
         onClick={() => onDelete(task.id)}
-        className="absolute top-2 right-8 opacity-0 group-hover/item:opacity-100 transition-opacity duration-200 text-xs p-0.5"
+        className="absolute top-2 right-8 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 text-xs p-0.5"
         style={{ color: 'var(--text-muted)' }}
       >
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
@@ -386,6 +387,9 @@ export default function QuadrantBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
     })
   )
 

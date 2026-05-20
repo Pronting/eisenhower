@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useLang } from '@/i18n/LanguageContext'
 import ThemeToggle from './ThemeToggle'
 
@@ -15,6 +16,7 @@ const navLinks = [
 export default function Header({ username, onLogout }: { username: string; onLogout: () => void }) {
   const pathname = usePathname()
   const { lang, setLang, t } = useLang()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
     <header
@@ -77,7 +79,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
             href="https://github.com/Pronting/eisenhower"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-colors duration-300 p-1"
+            className="transition-colors duration-300 p-1 hidden sm:block"
             style={{ color: 'var(--text-muted)' }}
             aria-label="GitHub"
           >
@@ -88,13 +90,132 @@ export default function Header({ username, onLogout }: { username: string; onLog
 
           <button
             onClick={onLogout}
-            className="text-sm transition-colors duration-300"
+            className="text-sm transition-colors duration-300 hidden sm:block"
             style={{ color: 'var(--text-muted)' }}
           >
             {t['header.logout']}
           </button>
+
+          {/* Hamburger button — mobile only */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="sm:hidden p-1.5 rounded-lg transition-colors duration-200"
+            style={{ color: 'var(--text-muted)' }}
+            aria-label="Menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
         </div>
       </div>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/40 sm:hidden"
+              onClick={() => setDrawerOpen(false)}
+            />
+
+            {/* Drawer panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed top-0 right-0 z-50 h-full w-64 sm:hidden flex flex-col"
+              style={{
+                backgroundColor: 'var(--bg-card)',
+                borderLeft: '1px solid var(--border-subtle)',
+              }}
+            >
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {username}
+                </span>
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="p-1 rounded-lg transition-colors duration-200"
+                  style={{ color: 'var(--text-muted)' }}
+                  aria-label="Close menu"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Nav links */}
+              <nav className="flex-1 px-2 py-3 space-y-1">
+                {navLinks.map(link => {
+                  const isActive = pathname === link.href
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setDrawerOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200"
+                      style={{
+                        color: isActive ? 'var(--neon-blue)' : 'var(--text-muted)',
+                        backgroundColor: isActive ? 'color-mix(in srgb, var(--neon-blue) 12%, transparent)' : 'transparent',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: isActive ? 1 : 0.5 }}><path d={link.iconPath} /></svg>
+                      {t[link.labelKey]}
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              {/* Drawer footer */}
+              <div className="px-4 py-3 border-t space-y-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t['lang.switch']}</span>
+                  <button
+                    onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-300"
+                    style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
+                  >
+                    {t['lang.switch']}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>GitHub</span>
+                  <a
+                    href="https://github.com/Pronting/eisenhower"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 transition-colors duration-200"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                    </svg>
+                  </a>
+                </div>
+                <button
+                  onClick={() => { setDrawerOpen(false); onLogout() }}
+                  className="w-full text-left text-sm px-3 py-2 rounded-lg transition-colors duration-200"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {t['header.logout']}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   )
 }
