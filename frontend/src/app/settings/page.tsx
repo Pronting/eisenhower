@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
@@ -77,6 +77,9 @@ export default function SettingsPage() {
   const [addingTimeFor, setAddingTimeFor] = useState<string | null>(null)
   const [newTime, setNewTime] = useState('09:00')
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [highlightGroup, setHighlightGroup] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const timerRef = useRef<NodeJS.Timeout[]>([])
 
   const groups = useMemo(() => groupConfigs(configs), [configs])
 
@@ -90,6 +93,12 @@ export default function SettingsPage() {
     setUser(JSON.parse(u))
     fetchConfigs()
   }, [router])
+
+  useEffect(() => {
+    return () => {
+      timerRef.current.forEach(clearTimeout)
+    }
+  }, [])
 
   const fetchConfigs = async () => {
     try {
@@ -117,12 +126,34 @@ export default function SettingsPage() {
     setSaving(true)
     setError('')
     try {
+      const trimmedAddress = address.trim()
       const data = await apiFetch('/push-configs', {
         method: 'POST',
-        body: JSON.stringify({ push_type: pushType, address: address.trim(), push_time: pushTime }),
+        body: JSON.stringify({ push_type: pushType, address: trimmedAddress, push_time: pushTime }),
       })
       if (data.data) {
+        const prevConfigs = configs
         setConfigs(prev => [...prev, data.data])
+
+        // Check if this address already had configs (before this add)
+        const hadExisting = prevConfigs.some(
+          c => c.push_type === pushType && c.address === trimmedAddress
+        )
+        const groupKey = `${pushType}:${trimmedAddress}`
+
+        if (hadExisting) {
+          // Auto-expand the "add time" form and highlight the group card
+          setAddingTimeFor(groupKey)
+          setHighlightGroup(groupKey)
+          setSuccessMessage(t['settings.addedToExisting'])
+          // Auto-clear highlight after 5 seconds
+          timerRef.current.forEach(clearTimeout)
+          timerRef.current = [
+            setTimeout(() => setHighlightGroup(null), 5000),
+            setTimeout(() => setSuccessMessage(''), 5000),
+          ]
+        }
+
         setAddress('')
         setPushType('email')
         setPushTime('09:00')
@@ -301,16 +332,25 @@ export default function SettingsPage() {
                     const groupKey = `${group.push_type}:${group.address}`
                     const isAddingTime = addingTimeFor === groupKey
                     const canAddTime = group.configs.length < 3
+                    const isHighlighted = highlightGroup === groupKey
 
                     return (
                       <motion.div
                         key={groupKey}
                         layout
                         initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                          borderColor: isHighlighted ? 'var(--neon-blue)' : 'var(--border-subtle)',
+                        }}
                         exit={{ opacity: 0, x: 10 }}
-                        className="rounded-xl border p-4"
-                        style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-card)' }}
+                        className="rounded-xl border p-4 transition-all duration-500"
+                        style={{
+                          borderColor: isHighlighted ? 'var(--neon-blue)' : 'var(--border-subtle)',
+                          backgroundColor: isHighlighted ? 'color-mix(in srgb, var(--neon-blue) 5%, var(--bg-card))' : 'var(--bg-card)',
+                          boxShadow: isHighlighted ? '0 0 16px color-mix(in srgb, var(--neon-blue) 20%, transparent)' : 'none',
+                        }}
                       >
                         {/* Group Header */}
                         <div className="flex items-center gap-3 mb-3">
@@ -331,6 +371,18 @@ export default function SettingsPage() {
                             {group.configs.length}/3 {t['settings.timePoint']}
                           </span>
                         </div>
+
+                        {/* Success hint for highlighted group */}
+                        {isHighlighted && successMessage && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-xs mb-2 px-1"
+                            style={{ color: 'var(--neon-blue)' }}
+                          >
+                            {successMessage}
+                          </motion.p>
+                        )}
 
                         {/* Time Points List */}
                         <div className="space-y-2">
@@ -491,16 +543,31 @@ export default function SettingsPage() {
                             </button>
                           </motion.div>
                         ) : canAddTime ? (
-                          <button
-                            onClick={() => setAddingTimeFor(groupKey)}
-                            className="flex items-center gap-1.5 mt-3 pt-3 text-xs transition-all duration-200 hover:opacity-80"
-                            style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--neon-blue)' }}
-                          >
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                            {t['settings.addTime']}
-                          </button>
+                          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                            <button
+                              onClick={() => setAddingTimeFor(groupKey)}
+                              className="flex items-center gap-1.5 text-xs transition-all duration-200 hover:opacity-80"
+                              style={{
+                                color: 'var(--neon-blue)',
+                                animation: isHighlighted ? 'pulse-glow 1.5s ease-in-out infinite' : 'none',
+                              }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                              {t['settings.addTime']}
+                            </button>
+                            {isHighlighted && (
+                              <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-xs mt-1"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {t['settings.addTimeHint']}
+                              </motion.p>
+                            )}
+                          </div>
                         ) : (
                           <p className="mt-3 pt-3 text-xs" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                             {t['settings.maxTimesReached']}
