@@ -131,7 +131,6 @@ const zh = {
   'settings.timePoint': '时间点',
   'settings.noConfigsHint': '添加你的第一个推送配置',
   'settings.deleteLastConfirm': '删除最后一个时间点将移除整组配置，确定继续？',
-  'settings.addFirstConfig': '添加你的第一个推送配置',
 
   // Theme
   'theme.light': '浅色',

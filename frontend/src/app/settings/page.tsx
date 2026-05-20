@@ -105,6 +105,15 @@ export default function SettingsPage() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!address.trim()) return
+
+    const existingCount = configs.filter(
+      c => c.push_type === pushType && c.address === address.trim()
+    ).length
+    if (existingCount >= 3) {
+      setError(t['settings.maxTimesReached'])
+      return
+    }
+
     setSaving(true)
     setError('')
     try {
