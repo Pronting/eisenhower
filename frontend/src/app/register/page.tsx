@@ -153,7 +153,7 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all duration-300"
                 style={{
                   backgroundColor: 'var(--bg-card-hover)',
@@ -173,7 +173,7 @@ export default function RegisterPage() {
                 type="password"
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all duration-300"
                 style={{
                   backgroundColor: 'var(--bg-card-hover)',
