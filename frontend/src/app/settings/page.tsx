@@ -55,9 +55,9 @@ function groupConfigs(configs: PushConfig[]): ConfigGroup[] {
     groups.get(key)!.configs.push(config)
   }
   // Sort time points within each group (early → late)
-  for (const group of groups.values()) {
+  groups.forEach(group => {
     group.configs.sort((a, b) => a.push_time.localeCompare(b.push_time))
-  }
+  })
   return Array.from(groups.values())
 }
 
