@@ -21,6 +21,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 10m
           script: |
+            set -e
             cd /home/ubuntu/ishwe
 
             # 拉取最新代码
