@@ -47,7 +47,14 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.detail || data.message || t['login.failed'])
       localStorage.setItem('token', data.data.token)
       localStorage.setItem('user', JSON.stringify(data.data.user))
-      router.push('/dashboard')
+      // Check if we need to redirect back to device authorize
+      const deviceRedirect = localStorage.getItem('device_auth_redirect')
+      if (deviceRedirect) {
+        localStorage.removeItem('device_auth_redirect')
+        router.push(deviceRedirect)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
