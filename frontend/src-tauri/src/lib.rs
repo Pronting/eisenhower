@@ -13,12 +13,19 @@ fn toggle_window(app: tauri::AppHandle) {
     }
 }
 
+#[tauri::command]
+fn close_window(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.close();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![toggle_window])
+        .invoke_handler(tauri::generate_handler![toggle_window, close_window])
         .setup(|app| {
             let handle = app.handle().clone();
             let shortcut_handle = handle.clone();

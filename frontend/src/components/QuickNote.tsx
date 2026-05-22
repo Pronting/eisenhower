@@ -148,19 +148,19 @@ export default function QuickNote() {
       className="w-full h-full overflow-y-auto p-4"
       style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-heading font-bold gradient-text">随处小记</h2>
+      {/* Header - drag region */}
+      <div data-tauri-drag-region className="flex items-center justify-between mb-4 cursor-move">
+        <h2 data-tauri-drag-region className="text-lg font-heading font-bold gradient-text">随处小记</h2>
         <button
           onClick={() => {
             try {
               const { invoke } = require('@tauri-apps/api/core')
-              invoke('toggle_window')
+              invoke('close_window')
             } catch {
               // Web fallback
             }
           }}
-          className="p-1.5 rounded-lg transition-colors"
+          className="p-1.5 rounded-lg transition-colors hover:opacity-80"
           style={{ color: 'var(--text-muted)' }}
           title="关闭"
         >
