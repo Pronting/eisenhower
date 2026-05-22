@@ -31,12 +31,15 @@ export default function DesktopLoginPage() {
   const [loading, setLoading] = useState(false)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated, otherwise auto-start auth
   useEffect(() => {
     if (hasValidToken()) {
       router.push('/dashboard')
+    } else {
+      // Auto-start OAuth flow on mount
+      startAuth()
     }
-  }, [router])
+  }, [router, startAuth])
 
   const startAuth = useCallback(async () => {
     setLoading(true)
