@@ -485,7 +485,7 @@ export default function SettingsPage() {
 
                                 <div className="flex-1" />
 
-                                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover/row:opacity-100 transition-all duration-300">
+                                <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => startEdit(config)}
                                     className="text-xs px-2 py-1.5 min-h-[44px] flex items-center transition-all duration-200 hover:underline"
