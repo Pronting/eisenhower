@@ -78,10 +78,11 @@ function dateAdd(days: number): string {
   return d.toISOString().split('T')[0]
 }
 
-function TaskCard({ task, isDragging, onDateChange }: {
+function TaskCard({ task, isDragging, onDateChange, dragListeners }: {
   task: Task
   isDragging?: boolean
   onDateChange?: (id: number, date: string) => void
+  dragListeners?: Record<string, (event: any) => void>
 }) {
   const isCompleted = task.status === 'completed'
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -161,8 +162,9 @@ function TaskCard({ task, isDragging, onDateChange }: {
 
         {/* Drag handle indicator */}
         <div
-          className="drag-handle sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
+          className="drag-handle sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5 touch-none"
           style={{ color: 'var(--text-muted)' }}
+          {...dragListeners}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
             <circle cx="4" cy="3" r="1.2" />
@@ -252,10 +254,9 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className="relative group/item"
       style={style}
-      {...listeners}
       {...attributes}
     >
-      <TaskCard task={task} isDragging={isDragging} onDateChange={onDateChange} />
+      <TaskCard task={task} isDragging={isDragging} onDateChange={onDateChange} dragListeners={listeners} />
       {/* Complete toggle */}
       <button
         onClick={() => onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
@@ -308,7 +309,7 @@ function QuadrantDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={`glass-sm p-4 flex flex-col w-full h-full transition-all duration-300 ${cfg.glow} ${
+      className={`glass-sm p-3 sm:p-4 flex flex-col w-full h-full min-h-[200px] sm:min-h-0 transition-all duration-300 ${cfg.glow} ${
         isOver ? 'droppable-active' : ''
       }`}
     >
@@ -449,8 +450,9 @@ export default function QuadrantBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-[55vh] sm:h-[60vh]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full overflow-hidden" style={{ gridAutoRows: '1fr' }}>
+      {/* Mobile: vertical scroll layout; Desktop: 2x2 grid */}
+      <div className="sm:h-[60vh]">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:h-full sm:overflow-hidden md:gap-4" style={{ gridAutoRows: '1fr' }}>
         {quadrants.map((q, qi) => {
           const qTasks = tasks.filter(t => t.quadrant === q)
           return (
@@ -459,7 +461,7 @@ export default function QuadrantBoard({
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: qi * 0.1 }}
-              className="flex flex-col w-full min-h-0 h-full"
+              className="flex flex-col w-full sm:min-h-0 sm:h-full"
             >
               <QuadrantDropZone
                 quadrant={q}

@@ -352,7 +352,7 @@ export default function DashboardPage() {
             <div className="flex rounded-lg border p-0.5" style={{ borderColor: 'var(--border-medium)' }}>
               <button
                 onClick={() => setDateFilter('today')}
-                className="px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+                className="px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 min-h-[36px]"
                 style={{
                   backgroundColor: dateFilter === 'today' ? 'var(--border-medium)' : 'transparent',
                   color: dateFilter === 'today' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -362,7 +362,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => setDateFilter('all')}
-                className="px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+                className="px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 min-h-[36px]"
                 style={{
                   backgroundColor: dateFilter === 'all' ? 'var(--border-medium)' : 'transparent',
                   color: dateFilter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -378,7 +378,7 @@ export default function DashboardPage() {
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="px-2 sm:px-3 py-1.5 text-xs rounded-lg border w-[130px] sm:w-auto"
+                className="px-2 sm:px-3 py-1.5 text-xs rounded-lg border w-[120px] sm:w-auto min-h-[36px]"
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   borderColor: 'var(--border-medium)',
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                 if (showForm) setShowForm(false)
               }}
               title={t['tooltip.quickNote']}
-              className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md"
+              className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md min-h-[44px]"
               style={{
                 backgroundColor: showNote ? 'var(--neon-blue)' : 'var(--bg-card)',
                 color: showNote ? '#fff' : 'var(--text-primary)',
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                 if (showNote) setShowNote(false)
               }}
               title={t['tooltip.newTask']}
-              className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md"
+              className="relative group px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-300 hover:shadow-md min-h-[44px]"
               style={{
                 backgroundColor: 'var(--text-primary)',
                 color: 'var(--bg-primary)',
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleNoteClear}
-                  className="px-4 py-2 text-sm transition-colors"
+                  className="px-4 py-2 text-sm transition-colors min-h-[44px]"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {t['dashboard.quickNote.clear']}
@@ -508,7 +508,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNote(false)}
-                  className="px-4 py-2 text-sm transition-colors"
+                  className="px-4 py-2 text-sm transition-colors min-h-[44px]"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {t['dashboard.cancel']}
@@ -517,7 +517,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={handleNoteConfirm}
                   disabled={noteConfirming || !noteContent.trim()}
-                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg"
+                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg min-h-[44px]"
                   style={{
                     backgroundColor: 'var(--text-primary)',
                     color: 'var(--bg-primary)',
@@ -691,7 +691,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm transition-colors"
+                  className="px-4 py-2 text-sm transition-colors min-h-[44px]"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {t['dashboard.cancel']}
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg"
+                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg min-h-[44px]"
                   style={{
                     backgroundColor: 'var(--text-primary)',
                     color: 'var(--bg-primary)',
