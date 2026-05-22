@@ -20,10 +20,14 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![toggle_window])
         .setup(|app| {
-            // Register Ctrl+F7 global shortcut
             let handle = app.handle().clone();
             let shortcut_handle = handle.clone();
-            handle.global_shortcut().on_shortcut(
+
+            // 先尝试注销已存在的快捷键，避免重复注册 panic
+            let gs = handle.global_shortcut();
+            let _ = gs.unregister("Ctrl+F7");
+
+            gs.on_shortcut(
                 "Ctrl+F7",
                 move |_app, _shortcut, event| {
                     if event.state == ShortcutState::Pressed {
