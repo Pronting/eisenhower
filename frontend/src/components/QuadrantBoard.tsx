@@ -308,7 +308,7 @@ function QuadrantDropZone({
   return (
     <div
       ref={setNodeRef}
-      className={`glass-sm p-4 flex flex-col w-full h-full transition-all duration-300 ${cfg.glow} ${
+      className={`glass-sm p-3 sm:p-4 flex flex-col w-full h-full min-h-[200px] sm:min-h-0 transition-all duration-300 ${cfg.glow} ${
         isOver ? 'droppable-active' : ''
       }`}
     >
@@ -449,8 +449,9 @@ export default function QuadrantBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-[55vh] sm:h-[60vh]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full overflow-hidden" style={{ gridAutoRows: '1fr' }}>
+      {/* Mobile: vertical scroll layout; Desktop: 2x2 grid */}
+      <div className="sm:h-[60vh]">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:h-full sm:overflow-hidden md:gap-4" style={{ gridAutoRows: '1fr' }}>
         {quadrants.map((q, qi) => {
           const qTasks = tasks.filter(t => t.quadrant === q)
           return (
@@ -459,7 +460,7 @@ export default function QuadrantBoard({
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: qi * 0.1 }}
-              className="flex flex-col w-full min-h-0 h-full"
+              className="flex flex-col w-full sm:min-h-0 sm:h-full"
             >
               <QuadrantDropZone
                 quadrant={q}

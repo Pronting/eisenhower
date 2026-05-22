@@ -353,7 +353,7 @@ export default function SettingsPage() {
                         }}
                       >
                         {/* Group Header */}
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
                           <span
                             className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border"
                             style={{
@@ -364,10 +364,10 @@ export default function SettingsPage() {
                           >
                             {group.push_type}
                           </span>
-                          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-sm font-medium truncate min-w-0 flex-1" style={{ color: 'var(--text-primary)' }}>
                             {group.address}
                           </span>
-                          <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {group.configs.length}/3 {t['settings.timePoint']}
                           </span>
                         </div>
@@ -392,7 +392,7 @@ export default function SettingsPage() {
                                 key={`edit-${config.id}`}
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="flex items-center gap-3 p-2 rounded-lg"
+                                className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 rounded-lg"
                                 style={{ backgroundColor: 'var(--bg-card-hover)' }}
                               >
                                 <input
@@ -455,7 +455,7 @@ export default function SettingsPage() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="flex items-center gap-3 p-2 rounded-lg group/row"
+                                className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 rounded-lg group/row"
                                 style={{ backgroundColor: 'var(--bg-card-hover)' }}
                               >
                                 <span className="text-sm font-mono" style={{ color: 'var(--text-primary)' }}>
@@ -512,7 +512,7 @@ export default function SettingsPage() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="flex items-center gap-3 mt-3 pt-3"
+                            className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 pt-3"
                             style={{ borderTop: '1px solid var(--border-subtle)' }}
                           >
                             <input

@@ -167,10 +167,10 @@ export default function ArchivePage() {
           {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Quadrant filter */}
-            <div className="flex rounded-lg border p-0.5" style={{ borderColor: 'var(--border-medium)' }}>
+            <div className="flex rounded-lg border p-0.5 overflow-x-auto" style={{ borderColor: 'var(--border-medium)' }}>
               <button
                 onClick={() => setQuadrantFilter('all')}
-                className="px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+                className="px-2 py-1.5 min-h-[36px] text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap"
                 style={{
                   backgroundColor: quadrantFilter === 'all' ? 'var(--border-medium)' : 'transparent',
                   color: quadrantFilter === 'all' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -182,7 +182,7 @@ export default function ArchivePage() {
                 <button
                   key={q}
                   onClick={() => setQuadrantFilter(q)}
-                  className="px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+                  className="px-2 py-1.5 min-h-[36px] text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap"
                   style={{
                     backgroundColor: quadrantFilter === q ? QUADRANT_COLORS[q] + '20' : 'transparent',
                     color: quadrantFilter === q ? QUADRANT_COLORS[q] : 'var(--text-muted)',
@@ -199,7 +199,7 @@ export default function ArchivePage() {
                 <button
                   key={d}
                   onClick={() => setDateFilter(d)}
-                  className="px-2 py-1.5 text-xs font-medium rounded-md transition-all duration-200"
+                  className="px-2 py-1.5 min-h-[36px] text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap"
                   style={{
                     backgroundColor: dateFilter === d ? 'var(--border-medium)' : 'transparent',
                     color: dateFilter === d ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -265,17 +265,17 @@ export default function ArchivePage() {
                     {qTasks.map(task => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between p-3 rounded-xl border group"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border group gap-2"
                         style={{
                           backgroundColor: 'var(--bg-card-hover)',
                           borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <div className="flex-1 min-w-0 mr-3">
+                        <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                             {task.title}
                           </h4>
-                          <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
                             {task.due_date && (
                               <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
                                 {task.due_date}
