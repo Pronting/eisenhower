@@ -50,9 +50,13 @@ jobs:
             set -e
             cd /home/ubuntu/ishwe
 
-            # 拉取最新代码
+            # 拉取最新代码（重试3次，防止 GnuTLS 间歇性 TLS 错误）
             git config --global http.version HTTP/1.1
-            git fetch origin master
+            for i in 1 2 3; do
+              git fetch origin master && break
+              echo "git fetch failed (attempt $i/3), retrying in 5s..."
+              sleep 5
+            done
             git reset --hard FETCH_HEAD
 
             # 重新构建并重启容器
