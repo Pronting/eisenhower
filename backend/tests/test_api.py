@@ -6,6 +6,7 @@ which provide a :class:`TestClient` bound to an isolated SQLite database.
 """
 import sys
 import os
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -714,3 +715,140 @@ class TestDeviceAuth:
             f"/api/auth/device/confirm?user_code={user_code}&token=invalid"
         )
         assert resp.status_code == 401
+
+
+# ======================================================================
+# Note Process (AI 拆分) — 端到端流程
+# ======================================================================
+
+class TestNoteProcess:
+    """测试 AI 拆分 → 快速入库完整流程（SEL-21）。"""
+
+    MOCK_AI_RESULT = {
+        "tasks": [
+            {"title": "买菜", "description": "上午去超市买菜", "quadrant": "q3", "reason": "日常琐事，紧急但不重要"},
+            {"title": "阅读", "description": "下午阅读专业书籍", "quadrant": "q2", "reason": "自我提升，重要不紧急"},
+            {"title": "锻炼", "description": "晚上跑步锻炼身体", "quadrant": "q2", "reason": "健康投资，重要不紧急"},
+        ]
+    }
+
+    def test_process_returns_tasks(self, client, token):
+        """AI 拆分应返回任务列表。"""
+        with patch("app.api.notes.process_note_to_tasks", return_value=self.MOCK_AI_RESULT):
+            resp = client.post("/api/notes/process", json={
+                "content": "上午买菜，下午阅读，晚上锻炼",
+            }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert "tasks" in data
+        assert len(data["tasks"]) == 3
+        assert data["tasks"][0]["title"] == "买菜"
+        assert data["tasks"][1]["title"] == "阅读"
+
+    def test_process_classifies_quadrants(self, client, token):
+        """AI 拆分应正确分类象限。"""
+        with patch("app.api.notes.process_note_to_tasks", return_value=self.MOCK_AI_RESULT):
+            resp = client.post("/api/notes/process", json={
+                "content": "上午买菜，下午阅读，晚上锻炼",
+            }, headers={"Authorization": f"Bearer {token}"})
+        tasks = resp.json()["data"]["tasks"]
+        quadrants = {t["title"]: t["quadrant"] for t in tasks}
+        assert quadrants["买菜"] == "q3"
+        assert quadrants["阅读"] == "q2"
+        assert quadrants["锻炼"] == "q2"
+
+    def test_process_then_quick_add(self, client, token):
+        """端到端：AI 拆分 → 用户选象限 → 批量入库。"""
+        # Step 1: AI 拆分
+        with patch("app.api.notes.process_note_to_tasks", return_value=self.MOCK_AI_RESULT):
+            process_resp = client.post("/api/notes/process", json={
+                "content": "上午买菜，下午阅读，晚上锻炼",
+            }, headers={"Authorization": f"Bearer {token}"})
+        assert process_resp.status_code == 200
+        ai_tasks = process_resp.json()["data"]["tasks"]
+        assert len(ai_tasks) == 3
+
+        # Step 2: 用户编辑象限后批量入库（全部改为 q1）
+        quick_add_payload = {
+            "tasks": [
+                {"title": t["title"], "quadrant": "q1", "description": t.get("description", "")}
+                for t in ai_tasks
+            ]
+        }
+        add_resp = client.post("/api/notes/quick-add", json=quick_add_payload,
+                               headers={"Authorization": f"Bearer {token}"})
+        assert add_resp.status_code == 200
+        assert add_resp.json()["data"]["created"] == 3
+
+        # Step 3: 验证数据库中任务存在
+        list_resp = client.get("/api/tasks",
+                               headers={"Authorization": f"Bearer {token}"})
+        assert list_resp.status_code == 200
+        saved_tasks = list_resp.json()["data"]
+        assert len(saved_tasks) == 3
+        for t in saved_tasks:
+            assert t["quadrant"] == "q1"
+            assert t["ai_metadata"]["source"] == "quick_note"
+
+    def test_process_then_quick_add_preserves_ai_quadrant(self, client, token):
+        """用户不修改象限时，应保留 AI 建议的象限。"""
+        with patch("app.api.notes.process_note_to_tasks", return_value=self.MOCK_AI_RESULT):
+            process_resp = client.post("/api/notes/process", json={
+                "content": "上午买菜，下午阅读",
+            }, headers={"Authorization": f"Bearer {token}"})
+        ai_tasks = process_resp.json()["data"]["tasks"]
+
+        # 用户不做修改，直接用 AI 建议的象限入库
+        quick_add_payload = {
+            "tasks": [
+                {"title": t["title"], "quadrant": t["quadrant"]}
+                for t in ai_tasks
+            ]
+        }
+        add_resp = client.post("/api/notes/quick-add", json=quick_add_payload,
+                               headers={"Authorization": f"Bearer {token}"})
+        assert add_resp.status_code == 200
+
+        list_resp = client.get("/api/tasks",
+                               headers={"Authorization": f"Bearer {token}"})
+        saved = list_resp.json()["data"]
+        quadrants = {t["title"]: t["quadrant"] for t in saved}
+        assert quadrants["买菜"] == "q3"
+        assert quadrants["阅读"] == "q2"
+
+    def test_process_empty_content(self, client, token):
+        """空内容应返回 422。"""
+        resp = client.post("/api/notes/process", json={
+            "content": "",
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_process_unauthorized(self, client):
+        """未授权应返回 401/403。"""
+        resp = client.post("/api/notes/process", json={
+            "content": "买菜",
+        })
+        assert resp.status_code in (401, 403)
+
+    def test_process_ai_error_returns_500(self, client, token):
+        """AI 返回错误时应返回 500。"""
+        with patch("app.api.notes.process_note_to_tasks", return_value={"tasks": [], "error": "AI 服务未配置"}):
+            resp = client.post("/api/notes/process", json={
+                "content": "买菜",
+            }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 500
+
+    def test_process_single_task(self, client, token):
+        """单任务输入也应正确处理。"""
+        mock_single = {
+            "tasks": [
+                {"title": "准备明天会议PPT", "description": "收集数据制作汇报材料", "quadrant": "q1", "reason": "明天截止，紧急重要"}
+            ]
+        }
+        with patch("app.api.notes.process_note_to_tasks", return_value=mock_single):
+            resp = client.post("/api/notes/process", json={
+                "content": "准备明天会议PPT",
+            }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        assert len(resp.json()["data"]["tasks"]) == 1
+        assert resp.json()["data"]["tasks"][0]["quadrant"] == "q1"
