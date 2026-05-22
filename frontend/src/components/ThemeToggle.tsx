@@ -13,7 +13,7 @@ export default function ThemeToggle() {
   useEffect(() => setMounted(true), [])
 
   if (!mounted) {
-    return <div className="w-9 h-9" />
+    return <div className="w-9 h-9 min-w-[44px] min-h-[44px]" />
   }
 
   const isDark = theme === 'dark'
@@ -21,7 +21,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="relative w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-300 hover:scale-105"
+      className="relative w-9 h-9 min-w-[44px] min-h-[44px] rounded-lg border flex items-center justify-center transition-all duration-300 hover:scale-105"
       style={{
         borderColor: 'var(--border-medium)',
         backgroundColor: 'var(--bg-card)',

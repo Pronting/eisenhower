@@ -61,7 +61,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
           {/* Language switch */}
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            className="text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-300"
+            className="text-xs px-2.5 py-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border transition-all duration-300"
             style={{
               borderColor: 'var(--border-medium)',
               color: 'var(--text-muted)',
@@ -99,7 +99,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
           {/* Hamburger button — mobile only */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="sm:hidden p-1.5 rounded-lg transition-colors duration-200"
+            className="sm:hidden p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors duration-200"
             style={{ color: 'var(--text-muted)' }}
             aria-label="Menu"
           >
@@ -145,7 +145,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
                 </span>
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="p-1 rounded-lg transition-colors duration-200"
+                  className="p-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors duration-200"
                   style={{ color: 'var(--text-muted)' }}
                   aria-label="Close menu"
                 >
@@ -184,7 +184,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t['lang.switch']}</span>
                   <button
                     onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-300"
+                    className="text-xs px-2.5 py-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border transition-all duration-300"
                     style={{ borderColor: 'var(--border-medium)', color: 'var(--text-muted)' }}
                   >
                     {t['lang.switch']}

@@ -78,10 +78,11 @@ function dateAdd(days: number): string {
   return d.toISOString().split('T')[0]
 }
 
-function TaskCard({ task, isDragging, onDateChange }: {
+function TaskCard({ task, isDragging, onDateChange, dragListeners }: {
   task: Task
   isDragging?: boolean
   onDateChange?: (id: number, date: string) => void
+  dragListeners?: Record<string, (event: any) => void>
 }) {
   const isCompleted = task.status === 'completed'
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -161,8 +162,9 @@ function TaskCard({ task, isDragging, onDateChange }: {
 
         {/* Drag handle indicator */}
         <div
-          className="drag-handle sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5"
+          className="drag-handle sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-0.5 touch-none"
           style={{ color: 'var(--text-muted)' }}
+          {...dragListeners}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
             <circle cx="4" cy="3" r="1.2" />
@@ -252,10 +254,9 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className="relative group/item"
       style={style}
-      {...listeners}
       {...attributes}
     >
-      <TaskCard task={task} isDragging={isDragging} onDateChange={onDateChange} />
+      <TaskCard task={task} isDragging={isDragging} onDateChange={onDateChange} dragListeners={listeners} />
       {/* Complete toggle */}
       <button
         onClick={() => onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
