@@ -82,7 +82,8 @@ function TaskCard({ task, isDragging, onDateChange, dragListeners }: {
   task: Task
   isDragging?: boolean
   onDateChange?: (id: number, date: string) => void
-  dragListeners?: Record<string, (event: any) => void>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragListeners?: Record<string, any>
 }) {
   const isCompleted = task.status === 'completed'
   const [showDatePicker, setShowDatePicker] = useState(false)
