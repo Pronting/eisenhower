@@ -526,3 +526,116 @@ class TestStats:
     def test_stats_unauthorized(self, client):
         resp = client.get("/api/stats/quadrant")
         assert resp.status_code == 403
+
+
+# ======================================================================
+# Quick Add (快速入库)
+# ======================================================================
+
+class TestQuickAdd:
+    def test_quick_add_single_task(self, client, token):
+        """单个任务快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "快速任务", "quadrant": "q1"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["created"] == 1
+        assert data["tasks"][0]["title"] == "快速任务"
+        assert data["tasks"][0]["quadrant"] == "q1"
+
+    def test_quick_add_batch_tasks(self, client, token):
+        """批量快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [
+                {"title": "任务1", "quadrant": "q1"},
+                {"title": "任务2", "quadrant": "q2"},
+                {"title": "任务3", "quadrant": "q3"},
+            ]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["created"] == 3
+        assert data["tasks"][0]["quadrant"] == "q1"
+        assert data["tasks"][1]["quadrant"] == "q2"
+        assert data["tasks"][2]["quadrant"] == "q3"
+
+    def test_quick_add_with_due_date(self, client, token):
+        """带截止日期的快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "有日期任务", "quadrant": "q2", "due_date": "2026-06-01"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["tasks"][0]["due_date"] == "2026-06-01"
+
+    def test_quick_add_with_priority(self, client, token):
+        """带优先级的快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "高优先级", "quadrant": "q1", "priority": "high"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["tasks"][0]["priority"] == "high"
+
+    def test_quick_add_with_importance_urgency(self, client, token):
+        """带重要/紧急标记的快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{
+                "title": "标记任务",
+                "quadrant": "q1",
+                "is_important": True,
+                "is_urgent": True,
+            }]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        assert resp.json()["data"]["created"] == 1
+
+    def test_quick_add_ai_metadata_source(self, client, token):
+        """ai_metadata.source 应为 quick_note。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "元数据测试", "quadrant": "q2"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        # 验证数据库中的 ai_metadata
+        task_id = resp.json()["data"]["tasks"][0]["id"]
+        list_resp = client.get("/api/tasks",
+                               headers={"Authorization": f"Bearer {token}"})
+        task = next(t for t in list_resp.json()["data"] if t["id"] == task_id)
+        assert task["ai_metadata"]["source"] == "quick_note"
+
+    def test_quick_add_invalid_quadrant(self, client, token):
+        """无效 quadrant 应返回 422。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "无效象限", "quadrant": "q5"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_quick_add_empty_tasks(self, client, token):
+        """空 tasks 数组应返回 422。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": []
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_quick_add_invalid_due_date(self, client, token):
+        """无效日期格式应返回 400。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "日期错误", "quadrant": "q1", "due_date": "not-a-date"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 400
+
+    def test_quick_add_unauthorized(self, client):
+        """未认证应返回 403。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "未认证", "quadrant": "q1"}]
+        })
+        assert resp.status_code == 403
+
+    def test_quick_add_with_description(self, client, token):
+        """带描述的快速入库。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "有描述", "quadrant": "q2", "description": "详细描述"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        assert resp.json()["data"]["tasks"][0]["description"] == "详细描述"

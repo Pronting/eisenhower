@@ -202,3 +202,28 @@ class NoteProcessResponse(BaseModel):
 class NoteConfirmRequest(BaseModel):
     content: str = Field(min_length=1, max_length=5000)
     tasks: list[NoteTaskItem]
+
+
+# ======================================================================
+# Quick Add (快速入库)
+# ======================================================================
+
+class QuickAddItem(BaseModel):
+    title: str = Field(max_length=200)
+    description: Optional[str] = Field(default="", max_length=2000)
+    quadrant: str = Field(description="Eisenhower quadrant: q1-q4")
+    priority: Optional[str] = Field(default=None, description="Priority level: low/medium/high")
+    due_date: Optional[str] = Field(default=None, description="Due date in YYYY-MM-DD format")
+    is_important: Optional[bool] = Field(default=None)
+    is_urgent: Optional[bool] = Field(default=None)
+
+    @field_validator("quadrant")
+    @classmethod
+    def validate_quadrant(cls, v: str) -> str:
+        if v not in VALID_QUADRANTS:
+            raise ValueError(f"quadrant must be one of: {', '.join(VALID_QUADRANTS)}")
+        return v
+
+
+class QuickAddRequest(BaseModel):
+    tasks: list[QuickAddItem] = Field(min_length=1, description="Batch tasks to create")

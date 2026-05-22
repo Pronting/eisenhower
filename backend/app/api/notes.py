@@ -9,6 +9,7 @@ from app.schemas.schemas import (
     NoteProcessRequest,
     NoteProcessResponse,
     NoteConfirmRequest,
+    QuickAddRequest,
     ApiResponse,
 )
 from app.agent.process_note import process_note_to_tasks
@@ -75,6 +76,65 @@ def confirm_note(
             "description": task.description,
             "quadrant": task.quadrant.value,
             "reason": item.reason,
+        })
+
+    db.commit()
+
+    return ApiResponse(data={
+        "created": len(created),
+        "tasks": created,
+    })
+
+
+@router.post("/quick-add")
+def quick_add(
+    req: QuickAddRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """快速入库 — 直接按用户指定的 quadrant 创建任务，跳过 AI 分类。"""
+    quadrant_map = {
+        "q1": Quadrant.Q1,
+        "q2": Quadrant.Q2,
+        "q3": Quadrant.Q3,
+        "q4": Quadrant.Q4,
+    }
+
+    created = []
+    for item in req.tasks:
+        quadrant = quadrant_map.get(item.quadrant, Quadrant.Q4)
+
+        # 解析 due_date
+        due_date = None
+        if item.due_date:
+            try:
+                due_date = datetime.strptime(item.due_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid due_date format: {item.due_date}")
+
+        task = Task(
+            user_id=user.id,
+            title=item.title,
+            description=item.description or "",
+            quadrant=quadrant,
+            status=TaskStatus.PENDING,
+            due_date=due_date,
+            ai_metadata={
+                "source": "quick_note",
+                "priority": item.priority,
+                "is_important": item.is_important,
+                "is_urgent": item.is_urgent,
+            },
+        )
+        db.add(task)
+        db.flush()
+        created.append({
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "quadrant": task.quadrant.value,
+            "due_date": item.due_date,
+            "priority": item.priority,
         })
 
     db.commit()
