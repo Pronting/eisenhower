@@ -17,6 +17,7 @@ fn toggle_window(app: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![toggle_window])
         .setup(|app| {
             // Register Ctrl+F7 global shortcut
