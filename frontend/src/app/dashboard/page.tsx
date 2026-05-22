@@ -517,7 +517,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={handleNoteConfirm}
                   disabled={noteConfirming || !noteContent.trim()}
-                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg"
+                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg min-h-[44px]"
                   style={{
                     backgroundColor: 'var(--text-primary)',
                     color: 'var(--bg-primary)',
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg"
+                  className="px-6 py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 transition-all duration-300 hover:shadow-lg min-h-[44px]"
                   style={{
                     backgroundColor: 'var(--text-primary)',
                     color: 'var(--bg-primary)',
