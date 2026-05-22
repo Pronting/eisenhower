@@ -12,7 +12,9 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "随处小记",
+        "url": "/quick-note",
         "width": 480,
         "height": 560,
         "decorations": false,
