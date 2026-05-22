@@ -526,3 +526,191 @@ class TestStats:
     def test_stats_unauthorized(self, client):
         resp = client.get("/api/stats/quadrant")
         assert resp.status_code == 403
+
+
+# ======================================================================
+# Quick Add (快速入库)
+# ======================================================================
+
+class TestQuickAdd:
+    def test_quick_add_single_task(self, client, token):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "快速任务", "quadrant": "q1"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["created"] == 1
+        assert data["tasks"][0]["title"] == "快速任务"
+        assert data["tasks"][0]["quadrant"] == "q1"
+
+    def test_quick_add_batch(self, client, token):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [
+                {"title": "任务A", "quadrant": "q1"},
+                {"title": "任务B", "quadrant": "q2", "description": "描述B"},
+                {"title": "任务C", "quadrant": "q3", "priority": "high"},
+            ]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["created"] == 3
+
+    def test_quick_add_with_due_date(self, client, token):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "有期限", "quadrant": "q1", "due_date": "2026-06-01"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["created"] == 1
+
+    def test_quick_add_invalid_quadrant(self, client, token):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "坏象限", "quadrant": "q5"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_quick_add_empty_tasks(self, client, token):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": []
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 422
+
+    def test_quick_add_no_ai_classification(self, client, token):
+        """快速入库不应经过 AI 分类，象限应与请求一致。"""
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [
+                {"title": "买零食", "quadrant": "q2"},
+                {"title": "老板汇报", "quadrant": "q3"},
+            ]
+        }, headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        tasks = resp.json()["data"]["tasks"]
+        assert tasks[0]["quadrant"] == "q2"
+        assert tasks[1]["quadrant"] == "q3"
+
+    def test_quick_add_metadata_source(self, client, token):
+        """ai_metadata.source 应为 'quick_note'。"""
+        client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "测试元数据", "quadrant": "q1", "priority": "high"}]
+        }, headers={"Authorization": f"Bearer {token}"})
+        resp = client.get("/api/tasks",
+                          headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        task = resp.json()["data"][0]
+        assert task["ai_metadata"]["source"] == "quick_note"
+        assert task["ai_metadata"]["priority"] == "high"
+
+    def test_quick_add_unauthorized(self, client):
+        resp = client.post("/api/notes/quick-add", json={
+            "tasks": [{"title": "x", "quadrant": "q1"}]
+        })
+        assert resp.status_code in (401, 403)
+
+
+# ======================================================================
+# OAuth Device Flow
+# ======================================================================
+
+class TestDeviceAuth:
+    def test_get_device_code(self, client):
+        resp = client.get("/api/auth/device/code")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert "device_code" in data
+        assert "user_code" in data
+        assert "verification_uri" in data
+        assert data["expires_in"] == 300
+        assert data["interval"] == 5
+
+    def test_device_code_unique(self, client):
+        r1 = client.get("/api/auth/device/code")
+        r2 = client.get("/api/auth/device/code")
+        assert r1.json()["data"]["device_code"] != r2.json()["data"]["device_code"]
+        assert r1.json()["data"]["user_code"] != r2.json()["data"]["user_code"]
+
+    def test_authorize_valid_user_code(self, client):
+        code_resp = client.get("/api/auth/device/code")
+        user_code = code_resp.json()["data"]["user_code"]
+        resp = client.get(f"/api/auth/device/authorize?user_code={user_code}")
+        assert resp.status_code == 200
+        assert resp.json()["data"]["user_code"] == user_code
+
+    def test_authorize_invalid_user_code(self, client):
+        resp = client.get("/api/auth/device/authorize?user_code=XXXX-YYYY")
+        assert resp.status_code == 400
+
+    def test_confirm_and_exchange_token(self, client, token):
+        """完整流程：获取 device_code → 确认授权 → 换取 token。"""
+        # Step 1: Get device code
+        code_resp = client.get("/api/auth/device/code")
+        data = code_resp.json()["data"]
+        device_code = data["device_code"]
+        user_code = data["user_code"]
+
+        # Step 2: Confirm authorization
+        confirm_resp = client.post(
+            f"/api/auth/device/confirm?user_code={user_code}&token={token}"
+        )
+        assert confirm_resp.status_code == 200
+        assert confirm_resp.json()["data"]["message"] == "Authorization successful"
+
+        # Step 3: Exchange device_code for token
+        token_resp = client.post("/api/auth/device/token", json={
+            "device_code": device_code,
+        })
+        assert token_resp.status_code == 200
+        token_data = token_resp.json()["data"]
+        assert "access_token" in token_data
+        assert token_data["token_type"] == "bearer"
+
+        # Verify the new token works
+        tasks_resp = client.get("/api/tasks",
+                                headers={"Authorization": f"Bearer {token_data['access_token']}"})
+        assert tasks_resp.status_code == 200
+
+    def test_token_exchange_pending(self, client):
+        """未确认授权时轮询应返回 428。"""
+        code_resp = client.get("/api/auth/device/code")
+        device_code = code_resp.json()["data"]["device_code"]
+
+        resp = client.post("/api/auth/device/token", json={
+            "device_code": device_code,
+        })
+        assert resp.status_code == 428
+
+    def test_token_exchange_invalid_device_code(self, client):
+        resp = client.post("/api/auth/device/token", json={
+            "device_code": "invalid-code",
+        })
+        assert resp.status_code == 400
+
+    def test_token_exchange_reuse(self, client, token):
+        """device_code 使用后应失效。"""
+        code_resp = client.get("/api/auth/device/code")
+        data = code_resp.json()["data"]
+
+        client.post(
+            f"/api/auth/device/confirm?user_code={data['user_code']}&token={token}"
+        )
+        client.post("/api/auth/device/token", json={"device_code": data["device_code"]})
+
+        # Second attempt should fail
+        resp = client.post("/api/auth/device/token", json={
+            "device_code": data["device_code"],
+        })
+        assert resp.status_code == 400
+
+    def test_confirm_invalid_user_code(self, client, token):
+        resp = client.post(
+            f"/api/auth/device/confirm?user_code=XXXX-YYYY&token={token}"
+        )
+        assert resp.status_code == 400
+
+    def test_confirm_invalid_token(self, client):
+        code_resp = client.get("/api/auth/device/code")
+        user_code = code_resp.json()["data"]["user_code"]
+
+        resp = client.post(
+            f"/api/auth/device/confirm?user_code={user_code}&token=invalid"
+        )
+        assert resp.status_code == 401
