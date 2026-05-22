@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getStoredToken } from '@/lib/desktop-auth'
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api'
 
@@ -19,9 +20,12 @@ const QUADRANTS = [
 ]
 
 export default function QuickNote() {
+  const [mode, setMode] = useState<'manual' | 'ai'>('manual')
   const [tasks, setTasks] = useState<TaskItem[]>([
     { title: '', description: '', quadrant: 'q2', due_date: '' },
   ])
+  const [aiInput, setAiInput] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -42,6 +46,57 @@ export default function QuickNote() {
     setTasks(updated)
   }
 
+  const handleAiSplit = async () => {
+    if (!aiInput.trim()) {
+      setError('请输入待办内容')
+      return
+    }
+
+    setAiLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = getStoredToken()
+      const res = await fetch(`${API}/notes/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ content: aiInput }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || 'AI 拆分失败')
+      }
+
+      const data = await res.json()
+      const aiTasks = data.data?.tasks || []
+
+      if (aiTasks.length === 0) {
+        setError('未识别到可执行的待办事项，请补充更多细节')
+        return
+      }
+
+      setTasks(
+        aiTasks.map((t: any) => ({
+          title: t.title || '',
+          description: t.description || '',
+          quadrant: t.quadrant || 'q2',
+          due_date: '',
+        }))
+      )
+      setMessage(`AI 拆分为 ${aiTasks.length} 个任务，请确认后入库`)
+      setAiInput('')
+    } catch (err: any) {
+      setError(err.message || 'AI 拆分失败')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     const validTasks = tasks.filter(t => t.title.trim())
     if (validTasks.length === 0) {
@@ -54,7 +109,7 @@ export default function QuickNote() {
     setMessage('')
 
     try {
-      const token = localStorage.getItem('token')
+      const token = getStoredToken()
       const res = await fetch(`${API}/notes/quick-add`, {
         method: 'POST',
         headers: {
@@ -79,8 +134,7 @@ export default function QuickNote() {
       const data = await res.json()
       setMessage(`成功创建 ${data.data.created} 个任务`)
       setTasks([{ title: '', description: '', quadrant: 'q2', due_date: '' }])
-
-      // Auto-hide success message after 3s
+      setAiInput('')
       setTimeout(() => setMessage(''), 3000)
     } catch (err: any) {
       setError(err.message || '入库失败')
@@ -116,6 +170,30 @@ export default function QuickNote() {
         </button>
       </div>
 
+      {/* Mode toggle */}
+      <div className="flex gap-1 mb-4 p-1 rounded-xl" style={{ backgroundColor: 'var(--bg-card-hover)' }}>
+        <button
+          onClick={() => setMode('manual')}
+          className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
+          style={{
+            backgroundColor: mode === 'manual' ? 'var(--bg-primary)' : 'transparent',
+            color: mode === 'manual' ? 'var(--text-primary)' : 'var(--text-muted)',
+          }}
+        >
+          手动输入
+        </button>
+        <button
+          onClick={() => setMode('ai')}
+          className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
+          style={{
+            backgroundColor: mode === 'ai' ? 'var(--bg-primary)' : 'transparent',
+            color: mode === 'ai' ? 'var(--text-primary)' : 'var(--text-muted)',
+          }}
+        >
+          AI 拆分
+        </button>
+      </div>
+
       {/* Status messages */}
       {message && (
         <div
@@ -131,6 +209,35 @@ export default function QuickNote() {
           style={{ backgroundColor: '#ef444410', border: '1px solid #ef444430', color: '#ef4444' }}
         >
           {error}
+        </div>
+      )}
+
+      {/* AI input mode */}
+      {mode === 'ai' && (
+        <div className="mb-4">
+          <textarea
+            placeholder="输入待办内容，如：上午买菜，下午阅读，晚上健身..."
+            value={aiInput}
+            onChange={e => setAiInput(e.target.value)}
+            rows={3}
+            className="w-full rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-1 resize-none"
+            style={{
+              backgroundColor: 'var(--bg-card-hover)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <button
+            onClick={handleAiSplit}
+            disabled={aiLoading}
+            className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all"
+            style={{
+              backgroundColor: '#8b5cf6',
+              color: '#fff',
+            }}
+          >
+            {aiLoading ? 'AI 分析中...' : '✨ AI 拆分'}
+          </button>
         </div>
       )}
 
