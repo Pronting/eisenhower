@@ -165,7 +165,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
                       key={link.href}
                       href={link.href}
                       onClick={() => setDrawerOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200"
+                      className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-lg text-sm transition-all duration-200"
                       style={{
                         color: isActive ? 'var(--neon-blue)' : 'var(--text-muted)',
                         backgroundColor: isActive ? 'color-mix(in srgb, var(--neon-blue) 12%, transparent)' : 'transparent',
@@ -206,7 +206,7 @@ export default function Header({ username, onLogout }: { username: string; onLog
                 </div>
                 <button
                   onClick={() => { setDrawerOpen(false); onLogout() }}
-                  className="w-full text-left text-sm px-3 py-2 rounded-lg transition-colors duration-200"
+                  className="w-full text-left text-sm px-3 py-2 min-h-[44px] rounded-lg transition-colors duration-200"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   {t['header.logout']}

@@ -289,10 +289,10 @@ export default function ArchivePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleRestore(task.id)}
-                            className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:opacity-80"
+                            className="px-3 py-1.5 min-h-[44px] text-xs font-medium rounded-lg border transition-all duration-200 hover:opacity-80"
                             style={{
                               borderColor: 'var(--border-medium)',
                               color: 'var(--text-primary)',
@@ -302,7 +302,7 @@ export default function ArchivePage() {
                           </button>
                           <button
                             onClick={() => handleDelete(task.id)}
-                            className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 hover:opacity-80"
+                            className="px-3 py-1.5 min-h-[44px] text-xs font-medium rounded-lg border transition-all duration-200 hover:opacity-80"
                             style={{
                               borderColor: '#ef444430',
                               color: '#ef4444',

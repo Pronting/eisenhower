@@ -522,7 +522,7 @@ export default function LandingPage() {
             >
               {t['landing.compare.title']}
             </motion.h2>
-            <div className="glass overflow-hidden">
+            <div className="glass overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-medium)' }}>

@@ -259,7 +259,7 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       {/* Complete toggle */}
       <button
         onClick={() => onStatusChange(task.id, task.status === 'completed' ? 'pending' : 'completed')}
-        className="absolute top-2 right-2 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+        className="absolute top-2 right-2 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 w-7 h-7 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full border-2"
         style={{
           borderColor: task.status === 'completed' ? '#22c55e' : 'var(--border-medium)',
           backgroundColor: task.status === 'completed' ? '#22c55e20' : 'transparent',
@@ -275,7 +275,7 @@ function DraggableTask({ task, onDelete, onStatusChange, onDateChange }: {
       {/* Delete */}
       <button
         onClick={() => onDelete(task.id)}
-        className="absolute top-2 right-8 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 text-xs p-0.5"
+        className="absolute top-2 right-10 sm:right-8 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 text-xs p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
         style={{ color: 'var(--text-muted)' }}
       >
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
