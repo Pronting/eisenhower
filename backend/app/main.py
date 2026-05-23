@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # Create all tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title=settings.APP_NAME, version="0.1.0")
+app = FastAPI(title=settings.APP_NAME, version="0.1.0", redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
