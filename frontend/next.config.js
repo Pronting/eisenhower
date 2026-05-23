@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === 'production'
+const isTauri = process.env.BUILD_TARGET === 'tauri'
 
 const nextConfig = {
-  output: 'export',
-  // 生产构建时使用相对路径（Tauri 静态文件），开发模式使用默认路径
-  assetPrefix: isProd ? './' : '',
+  // 桌面端构建时使用静态导出，Web 端使用 standalone
+  ...(isTauri && { output: 'export' }),
+  // 桌面端生产构建时使用相对路径，其他模式使用默认路径
+  assetPrefix: isProd && isTauri ? './' : '',
   trailingSlash: true,
   images: {
     unoptimized: true,
