@@ -1,19 +1,9 @@
-<p align="center">
-  <img src="https://img.icons8.com/fluency/96/task.png" alt="ishwe logo" width="96" />
-</p>
 
-<h1 align="center">ishwe · 智能任务管理系统</h1>
 
-<p align="center">
-  <strong>基于艾森豪威尔矩阵的 AI 驱动任务管理工具</strong>
-</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/FastAPI-0.104-teal?logo=fastapi" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.11+-blue?logo=python" alt="Python" />
-  <img src="https://img.shields.io/badge/AI-DeepSeek%20v4-6366f1" alt="DeepSeek" />
-  <img src="https://img.shields.io/badge/Docker-deploy-2496ED?logo=docker" alt="Docker" />
 </p>
 
 <p align="center">
@@ -24,32 +14,29 @@
 
 ## 项目简介
 
-**ishwe** 是一个基于艾森豪威尔矩阵（四象限法则）的智能任务管理系统。利用 AI 自动分析任务内容，智能判断优先级并归类到四个象限，支持批量创建、拖拽排序、定时推送、数据统计等功能。
+**ishwe** 是一个任务管理系统。负责将预定任务推送到指定的渠道，产品定位上类似 todo 系统，
+预计支持多端适配，桌面端与移动端应用
 
-**在线体验：** http://106.53.173.60:8080
 
 ---
 
 ## 功能特性
 
 - **四象限看板** — 拖拽排序，可视化任务分布
-- **AI 自动分类** — DeepSeek v4 驱动，创建任务时自动识别优先级
-- **笔记拆分** — 自然语言输入，AI 自动拆分为多个可执行任务
-- **智能推送** — 定时邮件/Webhook 推送每日任务总结
+- **智能自动分类** — 大模型驱动，创建任务时自动识别优先级
+- **智能推送** — 定时邮件/Webhook/短信 推送每日任务总结
 - **数据统计** — 完成率、象限分布、趋势图表
 - **深色模式** — 浅色/深色主题切换
 - **国际化** — 中英双语
-- **看板娘** — Live2D 吉祥物实时 AI 建议
 
----
 
-## 技术栈
+### 正在实现的功能
 
-**前端：** Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · Framer Motion · Recharts · @dnd-kit
+* 随处小记(快捷键呼出)
+![Snipaste_2026-05-23_14-54-47.png](docs/Snipaste_2026-05-23_14-54-47.png)
 
-**后端：** FastAPI · SQLAlchemy · LangChain · DeepSeek v4 · Pydantic · JWT
-
-**部署：** Docker · Docker Compose · GitHub Actions CI/CD · Nginx (1Panel OpenResty)
+* 安卓apk - 测试阶段
+* 其他feature............
 
 ---
 
@@ -78,7 +65,6 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:3000
 
 ### Docker Compose
 
@@ -91,11 +77,7 @@ docker compose up -d
 
 ## 生产部署
 
-### 服务器要求
 
-- Linux 服务器（推荐 Ubuntu）
-- Docker + Docker Compose
-- 反向代理（Nginx 或 1Panel OpenResty）
 
 ### 部署步骤
 
@@ -144,21 +126,6 @@ server {
 }
 ```
 
-### CI/CD 
-
-> 这里使用 Github Actions 进行自动部署
-
-推送代码到 `master` 分支后，GitHub Actions 自动 SSH 到服务器执行 `git pull` + `docker compose up -d --build`。
-
-需要在 GitHub 仓库 Settings → Secrets 中配置：
-
-| Secret | 说明 |
-|---|---|
-| `SERVER_HOST` | 服务器 IP |
-| `SERVER_USER` | SSH 用户名 |
-| `SERVER_PASSWORD` | SSH 密码 |
-
----
 
 ## 环境变量
 
@@ -172,17 +139,6 @@ server {
 ---
 
 ## API 概览
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| `POST` | `/api/auth/register` | 注册 |
-| `POST` | `/api/auth/login` | 登录 |
-| `GET/POST` | `/api/tasks` | 任务列表 / 创建 |
-| `PUT/DELETE` | `/api/tasks/:id` | 更新 / 删除 |
-| `POST` | `/api/agent/classify` | AI 分类 |
-| `POST` | `/api/notes/process` | 笔记拆分 |
-| `GET/POST` | `/api/push-configs` | 推送配置 |
-| `GET` | `/api/stats/quadrant` | 统计数据 |
 
 完整文档：启动后端后访问 http://localhost:8000/docs
 
@@ -209,7 +165,3 @@ ishwe/
 ```
 
 ---
-
-## 许可证
-
-MIT License

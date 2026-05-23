@@ -1,19 +1,9 @@
-<p align="center">
-  <img src="https://img.icons8.com/fluency/96/task.png" alt="ishwe logo" width="96" />
-</p>
 
-<h1 align="center">ishwe · Smart Task Manager</h1>
 
-<p align="center">
-  <strong>AI-powered task management based on the Eisenhower Matrix</strong>
-</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/FastAPI-0.104-teal?logo=fastapi" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.11+-blue?logo=python" alt="Python" />
-  <img src="https://img.shields.io/badge/AI-DeepSeek%20v4-6366f1" alt="DeepSeek" />
-  <img src="https://img.shields.io/badge/Docker-deploy-2496ED?logo=docker" alt="Docker" />
 </p>
 
 <p align="center">
@@ -24,32 +14,28 @@
 
 ## About
 
-**ishwe** is an intelligent task management system based on the Eisenhower Matrix (four-quadrant method). It uses AI to automatically analyze task content, determine priority, and organize tasks into four quadrants. Features include batch creation, drag-and-drop sorting, scheduled push notifications, and data analytics.
+**ishwe** is a task management system. It pushes scheduled tasks to designated channels. The product is similar to a todo system, with planned support for multi-platform adaptation including desktop and mobile applications.
 
-**Live Demo:** http://106.53.173.60:8080
 
 ---
 
 ## Features
 
-- **Quadrant Board** — Drag-and-drop task management with visual quadrant layout
-- **AI Classification** — DeepSeek v4 powered automatic priority detection
-- **Note Splitting** — Natural language input auto-split into actionable tasks
-- **Smart Push** — Scheduled email/webhook daily task summaries
+- **Quadrant Board** — Drag-and-drop sorting, visual task distribution
+- **Smart Auto-Classification** — AI-powered, automatically identifies priority when creating tasks
+- **Smart Push** — Scheduled email/webhook/SMS push for daily task summaries
 - **Statistics** — Completion rates, quadrant distribution, trend charts
 - **Dark Mode** — Light/dark theme toggle
 - **i18n** — Chinese and English support
-- **Live2D Mascot** — Interactive mascot with real-time AI suggestions
 
----
 
-## Tech Stack
+### Upcoming Features
 
-**Frontend:** Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · Framer Motion · Recharts · @dnd-kit
+* Quick Note (shortcut key to invoke)
+![Snipaste_2026-05-23_14-54-47.png](docs/Snipaste_2026-05-23_14-54-47.png)
 
-**Backend:** FastAPI · SQLAlchemy · LangChain · DeepSeek v4 · Pydantic · JWT
-
-**Deploy:** Docker · Docker Compose · GitHub Actions CI/CD · Nginx (1Panel OpenResty)
+* Android APK - Testing phase
+* Other features............
 
 ---
 
@@ -78,7 +64,6 @@ npm install
 npm run dev
 ```
 
-Visit http://localhost:3000
 
 ### Docker Compose
 
@@ -91,11 +76,7 @@ docker compose up -d
 
 ## Production Deployment
 
-### Server Requirements
 
-- Linux server (Ubuntu recommended)
-- Docker + Docker Compose
-- Reverse proxy (Nginx or 1Panel OpenResty)
 
 ### Deployment Steps
 
@@ -144,19 +125,6 @@ server {
 }
 ```
 
-### CI/CD Auto Deploy
-
-Push to `master` branch triggers GitHub Actions to SSH into the server and run `git pull` + `docker compose up -d --build`.
-
-Configure these secrets in GitHub repo Settings → Secrets:
-
-| Secret | Description |
-|---|---|
-| `SERVER_HOST` | Server IP address |
-| `SERVER_USER` | SSH username |
-| `SERVER_PASSWORD` | SSH password |
-
----
 
 ## Environment Variables
 
@@ -170,17 +138,6 @@ Configure these secrets in GitHub repo Settings → Secrets:
 ---
 
 ## API Overview
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/register` | Register |
-| `POST` | `/api/auth/login` | Login |
-| `GET/POST` | `/api/tasks` | List / Create tasks |
-| `PUT/DELETE` | `/api/tasks/:id` | Update / Delete task |
-| `POST` | `/api/agent/classify` | AI classification |
-| `POST` | `/api/notes/process` | Note splitting |
-| `GET/POST` | `/api/push-configs` | Push config |
-| `GET` | `/api/stats/quadrant` | Statistics |
 
 Full docs: http://localhost:8000/docs (after starting backend)
 
@@ -207,7 +164,3 @@ ishwe/
 ```
 
 ---
-
-## License
-
-MIT License
