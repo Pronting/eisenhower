@@ -45,6 +45,7 @@ def _task_to_dict(task: Task) -> dict:
 
 
 @router.get("")
+@router.get("/")
 def list_tasks(
     quadrant: Optional[str] = None,
     status: Optional[str] = None,
@@ -77,6 +78,7 @@ def list_tasks(
 
 
 @router.post("")
+@router.post("/")
 def create_task(
     req: TaskCreate,
     db: Session = Depends(get_db),

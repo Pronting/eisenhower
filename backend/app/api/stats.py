@@ -33,6 +33,7 @@ def _apply_due_date_filter(query, due_date: Optional[str]):
 
 
 @router.get("/quadrant")
+@router.get("/quadrant/")
 def quadrant_stats(
     due_date: Optional[str] = Query(default=None, description="Filter by due date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
@@ -50,6 +51,7 @@ def quadrant_stats(
 
 
 @router.get("/completion")
+@router.get("/completion/")
 def completion_stats(
     due_date: Optional[str] = Query(default=None, description="Filter by due date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
@@ -72,6 +74,7 @@ def completion_stats(
 
 
 @router.get("/trends")
+@router.get("/trends/")
 def trend_stats(
     days: int = 7,
     db: Session = Depends(get_db),
