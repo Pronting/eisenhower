@@ -17,7 +17,6 @@ async function openUrl(url: string) {
     const { open } = await import('@tauri-apps/plugin-shell')
     await open(url)
   } catch {
-    // Fallback for web environment
     window.open(url, '_blank')
   }
 }
@@ -30,18 +29,12 @@ export default function DesktopLoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Redirect if already authenticated, otherwise auto-start auth
-  useEffect(() => {
-    if (hasValidToken()) {
-      router.push('/dashboard')
-    } else {
-      // Auto-start OAuth flow on mount
-      startAuth()
-    }
-  }, [router, startAuth])
+  const hasStartedRef = useRef(false)
 
   const startAuth = useCallback(async () => {
+    if (hasStartedRef.current) return
+    hasStartedRef.current = true
+
     setLoading(true)
     setError('')
     try {
@@ -50,8 +43,8 @@ export default function DesktopLoginPage() {
       setStep('waiting')
 
       // Open browser for authorization
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || window.location.origin
-      const authUrl = `${baseUrl}${data.verification_uri}?user_code=${data.user_code}`
+      const origin = window.location.origin
+      const authUrl = `${origin}/device-authorize?user_code=${data.user_code}`
       await openUrl(authUrl)
 
       // Start polling for token
@@ -63,7 +56,7 @@ export default function DesktopLoginPage() {
             // Token received
             if (pollRef.current) clearInterval(pollRef.current)
             storeToken(result.access_token)
-            router.push('/dashboard')
+            router.push('/quick-note')
           }
         } catch (err: any) {
           if (pollRef.current) clearInterval(pollRef.current)
@@ -78,6 +71,16 @@ export default function DesktopLoginPage() {
       setLoading(false)
     }
   }, [router])
+
+  // Redirect if already authenticated, otherwise auto-start auth
+  useEffect(() => {
+    if (hasValidToken()) {
+      router.push('/quick-note')
+    } else {
+      // Auto-start OAuth flow on mount
+      startAuth()
+    }
+  }, [router, startAuth])
 
   // Cleanup polling on unmount
   useEffect(() => {

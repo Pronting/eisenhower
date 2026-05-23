@@ -18,6 +18,16 @@ export interface TokenResponse {
   token_type: string
 }
 
+/** Get Tauri fetch or fallback to browser fetch */
+export async function getFetch(): Promise<typeof fetch> {
+  try {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+    return tauriFetch as typeof fetch
+  } catch {
+    return fetch
+  }
+}
+
 /** Check if a stored token exists and is not expired */
 export function hasValidToken(): boolean {
   if (typeof window === 'undefined') return false
@@ -47,9 +57,35 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_EXPIRY_KEY)
 }
 
+/** Validate token by calling /api/auth/me */
+export async function validateToken(): Promise<boolean> {
+  const token = getStoredToken()
+  if (!token) return false
+
+  try {
+    const fetchFn = await getFetch()
+    const res = await fetchFn(`${API}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      // Token is valid, update expiry
+      storeToken(token)
+      return true
+    } else {
+      // Token is invalid, clear it
+      clearToken()
+      return false
+    }
+  } catch {
+    // Network error, assume token is still valid
+    return true
+  }
+}
+
 /** Step 1: Request a device code from the server */
 export async function requestDeviceCode(): Promise<DeviceCodeResponse> {
-  const res = await fetch(`${API}/auth/device/code`)
+  const fetchFn = await getFetch()
+  const res = await fetchFn(`${API}/auth/device/code`)
   if (!res.ok) throw new Error('Failed to get device code')
   const data = await res.json()
   return data.data
@@ -57,7 +93,8 @@ export async function requestDeviceCode(): Promise<DeviceCodeResponse> {
 
 /** Step 3: Poll for token exchange */
 export async function pollForToken(deviceCode: string): Promise<TokenResponse | null> {
-  const res = await fetch(`${API}/auth/device/token`, {
+  const fetchFn = await getFetch()
+  const res = await fetchFn(`${API}/auth/device/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ device_code: deviceCode }),

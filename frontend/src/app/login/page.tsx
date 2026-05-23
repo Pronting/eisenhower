@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useLang } from '@/i18n/LanguageContext'
@@ -11,8 +11,10 @@ import { validateEmail, validatePassword } from '@/lib/validators'
 
 const API = process.env.NEXT_PUBLIC_API_URL || '/api'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
   const { t } = useLang()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +49,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.detail || data.message || t['login.failed'])
       localStorage.setItem('token', data.data.token)
       localStorage.setItem('user', JSON.stringify(data.data.user))
-      router.push('/dashboard')
+      router.push(redirect || '/dashboard')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -163,5 +165,13 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
