@@ -59,9 +59,9 @@ jobs:
             done
             git reset --hard FETCH_HEAD
 
-            # 重新构建并重启容器
+            # 重新构建并重启容器（使用 --no-cache 确保使用最新代码）
             sudo docker compose down --timeout 30
-            sudo docker compose build
+            sudo docker compose build --no-cache
             sudo docker compose up -d
 
             # 清理悬空镜像
