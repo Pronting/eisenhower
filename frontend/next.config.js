@@ -4,7 +4,7 @@ const isTauri = process.env.BUILD_TARGET === 'tauri'
 
 const nextConfig = {
   // 桌面端构建时使用静态导出，Web 端使用 standalone
-  ...(isTauri && { output: 'export' }),
+  output: isTauri ? 'export' : 'standalone',
   // 桌面端生产构建时使用相对路径，其他模式使用默认路径
   assetPrefix: isProd && isTauri ? './' : '',
   trailingSlash: true,
