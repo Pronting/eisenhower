@@ -65,3 +65,15 @@ class PushLog(Base):
     status = Column(String(20), default="success")  # "success" or "failed"
     error_message = Column(Text, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DeviceAuthRequest(Base):
+    __tablename__ = "device_auth_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_code = Column(String(128), unique=True, index=True, nullable=False)
+    user_code = Column(String(8), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    status = Column(String(20), default="pending")  # "pending", "authorized", "expired"
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
