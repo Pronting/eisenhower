@@ -1,15 +1,13 @@
 /** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production'
-const isTauri = process.env.BUILD_TARGET === 'tauri'
-
 const nextConfig = {
-  // 桌面端构建时使用静态导出，Web 端使用 standalone
-  output: isTauri ? 'export' : 'standalone',
-  // 桌面端生产构建时使用相对路径，其他模式使用默认路径
-  assetPrefix: isProd && isTauri ? './' : '',
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
+  output: 'standalone',
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.API_URL || 'http://localhost:8000'}/api/:path*`,
+      },
+    ]
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

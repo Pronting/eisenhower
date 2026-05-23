@@ -1,16 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token, get_current_user
+from app.core.security import hash_password, verify_password, create_access_token
 from app.models.models import User
 from app.schemas.schemas import RegisterRequest, LoginRequest, ApiResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-
-@router.get("/me")
-def get_me(current_user: User = Depends(get_current_user)):
-    return ApiResponse(data={"id": current_user.id, "username": current_user.username, "email": current_user.email})
 
 
 @router.post("/register")

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.database import engine, Base, SessionLocal
 from app.core.config import settings
-from app.api import auth, tasks, agent, push, stats, notes, device_auth
+from app.api import auth, tasks, agent, push, stats, notes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +31,6 @@ app.include_router(agent.router)
 app.include_router(push.router)
 app.include_router(stats.router)
 app.include_router(notes.router)
-app.include_router(device_auth.router)
 
 
 # ======================================================================

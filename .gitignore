@@ -46,12 +46,6 @@ __pycache__/
 *.tsbuildinfo
 
 # =====================
-# Tauri / Rust
-# =====================
-frontend/src-tauri/target/
-frontend/src-tauri/gen/
-
-# =====================
 # Python 虚拟环境
 # =====================
 venv/
