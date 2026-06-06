@@ -28,25 +28,53 @@ logger = logging.getLogger(__name__)
 # ======================================================================
 
 def _send_via_resend(to_address: str, subject: str, html_body: str) -> tuple[bool, str]:
-    """Send email via Resend REST API."""
-    resp = httpx.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {settings.RESEND_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "from": f"ishwe <onboarding@resend.dev>",
-            "to": [to_address],
-            "subject": subject,
-            "html": html_body,
-        },
-        timeout=15,
-    )
+    """Send email via Resend REST API.
+
+    Distinguishes auth/quota/4xx errors from transient network failures to avoid
+    hammering Resend with doomed retries. Returns (success, error_message).
+    """
+    if not settings.RESEND_API_KEY:
+        return False, "RESEND_API_KEY 未配置"
+
+    try:
+        resp = httpx.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": f"ishwe <onboarding@resend.dev>",
+                "to": [to_address],
+                "subject": subject,
+                "html": html_body,
+            },
+            timeout=httpx.Timeout(connect=5.0, read=15.0, write=10.0, pool=5.0),
+        )
+    except httpx.TimeoutException as e:
+        return False, f"Resend 请求超时: {type(e).__name__}"
+    except httpx.HTTPError as e:
+        return False, f"Resend 网络错误: {type(e).__name__}: {e}"
+
     if resp.is_success:
         return True, ""
-    detail = resp.json().get("message", resp.text[:200])
-    return False, f"Resend API error: {detail}"
+
+    # Distinguish error classes so callers (and operators) can act on them
+    status = resp.status_code
+    try:
+        detail = resp.json().get("message") or resp.json().get("error") or resp.text[:200]
+    except Exception:
+        detail = resp.text[:200]
+
+    if status == 401:
+        return False, "Resend 认证失败 (401): API key 无效，请在 .env 中检查 RESEND_API_KEY"
+    if status == 403:
+        return False, "Resend 权限被拒 (403): API key 失效或发件域名未验证，请到 resend.com 检查"
+    if status == 422:
+        return False, f"Resend 参数错误 (422): {detail}"
+    if status == 429:
+        return False, f"Resend 触发限流 (429): {detail}，稍后重试"
+    return False, f"Resend API 错误 ({status}): {detail}"
 
 
 # ======================================================================

@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Optional
 
 from langchain_core.messages import SystemMessage, HumanMessage
-from app.agent.llm import get_llm
+from app.agent.llm import get_llm, safe_invoke, is_quota_exhausted
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +166,17 @@ def generate_daily_summary_v2(tasks: list[dict], user_id: int = 0) -> dict:
 要求：覆盖四个象限的关键动态，点出最重要的1-2件事。先交代完成情况，再说待办重点。"""
 
     try:
-        resp = llm.invoke([
+        resp, err = safe_invoke(llm, [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"总计{total}个任务，已完成{completed}个，待完成{pending}个：\n\n{task_text}"),
         ])
+        if err is not None:
+            # safe_invoke already marks quota exhausted when applicable; only log
+            # other errors. Skip logging entirely when quota is already known
+            # to be exhausted to avoid log spam from scheduled push retries.
+            if not is_quota_exhausted():
+                logger.warning(f"Daily summary AI failed: {err}")
+            return {"summary": _rule_summary(tasks, "daily"), "stats": _basic_stats(tasks)}
         content = resp.content.strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
@@ -178,7 +185,8 @@ def generate_daily_summary_v2(tasks: list[dict], user_id: int = 0) -> dict:
         result["method"] = "deepseek-v4"
         return result
     except Exception as e:
-        logger.warning(f"Daily summary AI failed: {e}")
+        if not is_quota_exhausted():
+            logger.warning(f"Daily summary AI failed: {e}")
         return {"summary": _rule_summary(tasks, "daily"), "stats": _basic_stats(tasks)}
 
 
@@ -212,10 +220,14 @@ def generate_todo_summary(tasks: list[dict], user_id: int = 0) -> dict:
 要求：按象限优先级概括待办核心，Q1优先，Q2次之。语气简洁有行动感。"""
 
     try:
-        resp = llm.invoke([
+        resp, err = safe_invoke(llm, [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"待完成{len(pending_tasks)}个任务：\n\n{task_text}"),
         ])
+        if err is not None:
+            if not is_quota_exhausted():
+                logger.warning(f"Todo summary AI failed: {err}")
+            return {"summary": _rule_summary(pending_tasks, "todo"), "stats": {"pending": len(pending_tasks)}}
         content = resp.content.strip()
         if content.startswith("```"):
             content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
@@ -224,7 +236,8 @@ def generate_todo_summary(tasks: list[dict], user_id: int = 0) -> dict:
         result["method"] = "deepseek-v4"
         return result
     except Exception as e:
-        logger.warning(f"Todo summary AI failed: {e}")
+        if not is_quota_exhausted():
+            logger.warning(f"Todo summary AI failed: {e}")
         return {"summary": _rule_summary(pending_tasks, "todo"), "stats": {"pending": len(pending_tasks)}}
 
 
