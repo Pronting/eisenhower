@@ -26,27 +26,35 @@ def _should_fire(schedule: PushSchedule, now: datetime) -> bool:
 
 
 def _dispatch(schedule: PushSchedule) -> None:
-    """Send the actual push for a single schedule."""
+    """Send the actual push for a single schedule.
+
+    Re-queries the schedule by primary key so it is bound to the new
+    SessionLocal — this avoids the SQLAlchemy "Object is already attached
+    to session X (this is Y)" error when the caller (scheduler_loop)
+    holds a reference to the same object from a different session.
+    """
     db = SessionLocal()
     try:
-        schedule.last_fired_at = datetime.now()
-        db.add(schedule)
+        s = db.get(PushSchedule, schedule.id)
+        if s is None:
+            return
+        s.last_fired_at = datetime.now()
         db.commit()
-        if schedule.push_type == "desktop":
+        if s.push_type == "desktop":
             logger.info(
-                f"Would fire desktop notification: user={schedule.user_id} "
-                f"label={schedule.label}"
+                f"Would fire desktop notification: user={s.user_id} "
+                f"label={s.label}"
             )
             return
         pc = PushConfig(
             id=0,
-            user_id=schedule.user_id,
-            push_type=schedule.push_type,
-            address=schedule.address,
+            user_id=s.user_id,
+            push_type=s.push_type,
+            address=s.address,
             push_time=None,
             enabled=1,
         )
-        execute_push(pc, schedule.user_id, db)
+        execute_push(pc, s.user_id, db)
     except Exception:
         logger.exception("Schedule dispatch failed")
     finally:

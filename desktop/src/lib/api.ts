@@ -46,7 +46,20 @@ export async function api<T = unknown>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
-    return (await res.json()) as T;
+    const data = await res.json();
+    if (!res.ok) {
+      // Throw an Error with the API's message so callers can use
+      // `e.message` regardless of whether the response is wrapped
+      // ({"code", "data", "message"}) or unwrapped ({"detail": ...}).
+      const msg =
+        (data && (data.message || data.detail)) ||
+        `HTTP ${res.status} ${res.statusText}`;
+      const err = new Error(msg) as Error & { status: number; data: unknown };
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data as T;
   } finally {
     clearTimeout(timer);
   }

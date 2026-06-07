@@ -192,10 +192,10 @@ function SchedulesSection({ token, onUnauthorized }: Props) {
 
   const reload = async () => {
     try {
-      const res = await api<{ data: Schedule[] }>("/api/schedules", {
+      const res = await api<Schedule[]>("/api/schedules", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setItems(res.data || []);
+      setItems(res || []);
     } catch (e: any) {
       if (e?.status === 401 || e?.status === 403) {
         onUnauthorized();
@@ -392,7 +392,8 @@ function ScheduleEditor({
     setReasoning("");
     try {
       const res = await api<{
-        data: { candidates: CronCandidate[]; reasoning: string };
+        candidates: CronCandidate[];
+        reasoning: string;
       }>("/api/cron/generate", {
         method: "POST",
         headers: {
@@ -401,8 +402,8 @@ function ScheduleEditor({
         },
         body: { description: aiPrompt },
       });
-      setCandidates(res.data.candidates || []);
-      setReasoning(res.data.reasoning || "");
+      setCandidates(res.candidates || []);
+      setReasoning(res.reasoning || "");
     } catch (e: any) {
       if (e?.status === 401 || e?.status === 403) {
         onUnauthorized();

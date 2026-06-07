@@ -110,17 +110,67 @@ fn parse_shortcut(combo: &str) -> Result<Shortcut, CommandError> {
     let mut code: Option<Code> = None;
 
     for part in combo.split('+') {
-        match part.trim().to_uppercase().as_str() {
+        let p = part.trim();
+        // Modifiers (case-insensitive)
+        match p.to_uppercase().as_str() {
             "CTRL" | "CONTROL" | "COMMANDORCONTROL" => modifiers |= Modifiers::CONTROL,
             "SHIFT" => modifiers |= Modifiers::SHIFT,
             "ALT" => modifiers |= Modifiers::ALT,
             "SUPER" | "META" | "WIN" | "CMD" | "COMMAND" => modifiers |= Modifiers::SUPER,
-            "N" => code = Some(Code::KeyN),
-            "M" => code = Some(Code::KeyM),
-            "K" => code = Some(Code::KeyK),
-            "Q" => code = Some(Code::KeyQ),
-            other => return Err(CommandError::Invalid(format!("unsupported key: {}", other))),
+            _ => {}
         }
+        // F1-F12
+        if let Some(n) = p.strip_prefix('F').or_else(|| p.strip_prefix('f')) {
+            if let Ok(num) = n.parse::<u8>() {
+                let c = match num {
+                    1 => Code::F1, 2 => Code::F2, 3 => Code::F3, 4 => Code::F4,
+                    5 => Code::F5, 6 => Code::F6, 7 => Code::F7, 8 => Code::F8,
+                    9 => Code::F9, 10 => Code::F10, 11 => Code::F11, 12 => Code::F12,
+                    _ => return Err(CommandError::Invalid(format!("unsupported F-key: {}", num))),
+                };
+                code = Some(c);
+                continue;
+            }
+        }
+        // Single character (A-Z, 0-9, space, named keys)
+        let upper = p.to_uppercase();
+        code = Some(match upper.as_str() {
+            "SPACE" => Code::Space,
+            "ENTER" | "RETURN" => Code::Enter,
+            "ESCAPE" | "ESC" => Code::Escape,
+            "TAB" => Code::Tab,
+            "BACKSPACE" => Code::Backspace,
+            "DELETE" | "DEL" => Code::Delete,
+            "INSERT" | "INS" => Code::Insert,
+            "HOME" => Code::Home,
+            "END" => Code::End,
+            "PAGEUP" | "PGUP" => Code::PageUp,
+            "PAGEDOWN" | "PGDN" => Code::PageDown,
+            "UP" => Code::ArrowUp,
+            "DOWN" => Code::ArrowDown,
+            "LEFT" => Code::ArrowLeft,
+            "RIGHT" => Code::ArrowRight,
+            _ if upper.len() == 1 => {
+                let ch = upper.chars().next().unwrap();
+                match ch {
+                    'A' => Code::KeyA, 'B' => Code::KeyB, 'C' => Code::KeyC,
+                    'D' => Code::KeyD, 'E' => Code::KeyE, 'F' => Code::KeyF,
+                    'G' => Code::KeyG, 'H' => Code::KeyH, 'I' => Code::KeyI,
+                    'J' => Code::KeyJ, 'K' => Code::KeyK, 'L' => Code::KeyL,
+                    'M' => Code::KeyM, 'N' => Code::KeyN, 'O' => Code::KeyO,
+                    'P' => Code::KeyP, 'Q' => Code::KeyQ, 'R' => Code::KeyR,
+                    'S' => Code::KeyS, 'T' => Code::KeyT, 'U' => Code::KeyU,
+                    'V' => Code::KeyV, 'W' => Code::KeyW, 'X' => Code::KeyX,
+                    'Y' => Code::KeyY, 'Z' => Code::KeyZ,
+                    '0' => Code::Digit0, '1' => Code::Digit1, '2' => Code::Digit2,
+                    '3' => Code::Digit3, '4' => Code::Digit4, '5' => Code::Digit5,
+                    '6' => Code::Digit6, '7' => Code::Digit7, '8' => Code::Digit8,
+                    '9' => Code::Digit9,
+                    _ => return Err(CommandError::Invalid(format!("unsupported key: {}", ch))),
+                }
+            }
+            _ => return Err(CommandError::Invalid(format!("unsupported key: {}", p))),
+        });
     }
 
     let code = code.ok_or_else(|| CommandError::Invalid("missing key code".into()))?;
@@ -255,11 +305,17 @@ pub fn run() {
             if let Ok(default) = parse_shortcut(DEFAULT_SHORTCUT) {
                 let gs = app.global_shortcut();
                 let _ = gs.unregister(default.clone());
-                if let Err(e) = gs.on_shortcut(default, |_app, _sc, event| {
+                let shortcut_app = app.handle().clone();
+                if let Err(e) = gs.on_shortcut(default, move |_app, _sc, event| {
                     if event.state == ShortcutState::Pressed {
-                        // The visible handler is wired through the frontend
-                        // (which calls toggle_window via invoke). The Rust
-                        // shortcut is kept here as a fallback for power users.
+                        if let Some(window) = shortcut_app.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
                     }
                 }) {
                     eprintln!("default shortcut register failed: {}", e);
