@@ -15,9 +15,9 @@ At least one of these must be set:
 
 Optional env:
   PRIMARY_PROVIDER     "minimax" (default) or "deepseek"
-  MINIMAX_BASE_URL     default https://api.minimaxi.com/v1
+  MINIMAX_BASE_URL     default https://api.minimaxi.com/anthropic (Anthropic protocol)
   MINIMAX_MODEL        default MiniMax-M3
-  DEEPSEEK_BASE_URL    default https://api.deepseek.com/v1
+  DEEPSEEK_BASE_URL    default https://api.deepseek.com/anthropic (Anthropic protocol)
   DEEPSEEK_MODEL       default deepseek-v4-pro
 
 Exit codes:
@@ -45,6 +45,8 @@ MAX_INLINE_COMMENTS = 20
 PROMPT_FILE = Path(__file__).parent / "prompts" / "review_system.md"
 USER_AGENT = "ai-pr-reviewer/1.0"
 SUMMARY_MARKER = "<!-- ai-pr-reviewer:summary -->"
+ANTHROPIC_VERSION = "2023-06-01"
+ANTHROPIC_MAX_TOKENS = 4096
 
 
 # ---------- env helpers ----------
@@ -206,42 +208,71 @@ def build_messages(pr: dict, diff: str, files: list[dict], system_prompt: str) -
 
 # ---------- LLM providers ----------
 
-def call_openai_compat(
+def parse_anthropic_response(data: dict) -> str:
+    """Extract the first text block from an Anthropic /v1/messages response."""
+    content = data.get("content")
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                return block.get("text", "")
+    if isinstance(content, str):
+        return content
+    raise ValueError(
+        f"could not extract text from Anthropic response: {json.dumps(data)[:300]}"
+    )
+
+
+def call_anthropic_compat(
     *,
     base_url: str,
     api_key: str,
     model: str,
     messages: list[dict],
+    max_tokens: int = ANTHROPIC_MAX_TOKENS,
     timeout: int = 120,
     max_retries: int = 2,
 ) -> str:
-    url = f"{base_url.rstrip('/')}/chat/completions"
+    """Call an Anthropic-protocol endpoint (POST <base>/v1/messages).
+
+    Anthropic uses x-api-key + anthropic-version headers (not Bearer),
+    requires max_tokens, and treats the system prompt as a top-level field.
+    """
+    url = f"{base_url.rstrip('/')}/v1/messages"
+    system_text = ""
+    chat_messages: list[dict] = []
+    for m in messages:
+        if m.get("role") == "system":
+            system_text += (m.get("content") or "") + "\n"
+        else:
+            chat_messages.append(m)
+
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": chat_messages,
+        "max_tokens": max_tokens,
+    }
+    if system_text.strip():
+        body["system"] = system_text.strip()
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": ANTHROPIC_VERSION,
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+
     last_err: Optional[Exception] = None
     for attempt in range(max_retries + 1):
         try:
             with httpx.Client(timeout=timeout) as client:
-                r = client.post(
-                    url,
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                        "User-Agent": USER_AGENT,
-                    },
-                    json={
-                        "model": model,
-                        "messages": messages,
-                        "temperature": 0.2,
-                        "response_format": {"type": "json_object"},
-                    },
-                )
+                r = client.post(url, headers=headers, json=body)
                 # 5xx and 429 are retryable
                 if r.status_code >= 500 or r.status_code == 429:
                     raise httpx.HTTPStatusError(
                         f"{r.status_code}: {r.text[:200]}", request=r.request, response=r
                     )
                 r.raise_for_status()
-                data = r.json()
-                return data["choices"][0]["message"]["content"]
+                return parse_anthropic_response(r.json())
         except Exception as e:  # broad: network, timeout, http
             last_err = e
             if attempt < max_retries:
@@ -251,11 +282,11 @@ def call_openai_compat(
     raise last_err  # unreachable, but mypy-friendly
 
 
-# providers are registered by name → (url_default, model_default, env_key, caller)
+# providers are registered by name → caller function
 def _call_minimax(messages: list[dict]) -> str:
     api_key = get_env("MINIMAX_API_KEY", required=True)
-    return call_openai_compat(
-        base_url=get_env("MINIMAX_BASE_URL", default="https://api.minimaxi.com/v1"),
+    return call_anthropic_compat(
+        base_url=get_env("MINIMAX_BASE_URL", default="https://api.minimaxi.com/anthropic"),
         api_key=api_key,
         model=get_env("MINIMAX_MODEL", default="MiniMax-M3"),
         messages=messages,
@@ -264,8 +295,8 @@ def _call_minimax(messages: list[dict]) -> str:
 
 def _call_deepseek(messages: list[dict]) -> str:
     api_key = get_env("DEEPSEEK_API_KEY", required=True)
-    return call_openai_compat(
-        base_url=get_env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/v1"),
+    return call_anthropic_compat(
+        base_url=get_env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/anthropic"),
         api_key=api_key,
         model=get_env("DEEPSEEK_MODEL", default="deepseek-v4-pro"),
         messages=messages,

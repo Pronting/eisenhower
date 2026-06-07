@@ -19,6 +19,7 @@ from ai_pr_review import (  # noqa: E402
     parse_file_patches,
     parse_review,
     get_env,
+    parse_anthropic_response,
 )
 
 
@@ -210,6 +211,39 @@ class TestGetEnv(unittest.TestCase):
     def test_set_value_wins(self) -> None:
         os.environ["_TEST_SET_VAR_"] = "real"
         self.assertEqual(get_env("_TEST_SET_VAR_", default="fallback"), "real")
+
+
+class TestParseAnthropicResponse(unittest.TestCase):
+    """Parse text from an Anthropic /v1/messages JSON response."""
+
+    def test_text_block_list(self) -> None:
+        data = {
+            "id": "msg_01",
+            "content": [{"type": "text", "text": "hello world"}],
+            "stop_reason": "end_turn",
+        }
+        self.assertEqual(parse_anthropic_response(data), "hello world")
+
+    def test_multiple_blocks_returns_first_text(self) -> None:
+        data = {
+            "content": [
+                {"type": "text", "text": "first"},
+                {"type": "text", "text": "second"},
+            ]
+        }
+        self.assertEqual(parse_anthropic_response(data), "first")
+
+    def test_string_content(self) -> None:
+        self.assertEqual(parse_anthropic_response({"content": "raw string"}), "raw string")
+
+    def test_ignores_non_text_blocks(self) -> None:
+        data = {"content": [{"type": "tool_use", "id": "x"}]}
+        with self.assertRaises(ValueError):
+            parse_anthropic_response(data)
+
+    def test_missing_content_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_anthropic_response({"id": "msg_01"})
 
 
 if __name__ == "__main__":

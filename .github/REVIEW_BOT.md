@@ -27,9 +27,9 @@ Configure under **Settings → Secrets and variables → Actions → Variables**
 
 | Name | Default | Notes |
 |---|---|---|
-| `MINIMAX_BASE_URL` | `https://api.minimaxi.com/v1` | Override if your account uses a different region. |
+| `MINIMAX_BASE_URL` | `https://api.minimaxi.com/anthropic` | Anthropic protocol endpoint. Override if your account uses a different region. |
 | `MINIMAX_MODEL` | `MiniMax-M3` | Override if you want a different MiniMax model. |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` | |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/anthropic` | Anthropic protocol endpoint. |
 | `DEEPSEEK_MODEL` | `deepseek-v4-pro` | Use `deepseek-reasoner` for stronger reasoning. |
 
 ## How to skip a PR
