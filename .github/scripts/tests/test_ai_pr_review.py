@@ -11,6 +11,8 @@ import sys
 import unittest
 from pathlib import Path
 
+import httpx  # noqa: E402
+
 # Make the parent module importable when running this file directly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -20,6 +22,7 @@ from ai_pr_review import (  # noqa: E402
     parse_review,
     get_env,
     parse_anthropic_response,
+    _is_retryable,
 )
 
 
@@ -277,6 +280,33 @@ class TestParseAnthropicResponse(unittest.TestCase):
     def test_block_with_text_field_no_type(self) -> None:
         data = {"content": [{"text": "loose text"}]}
         self.assertEqual(parse_anthropic_response(data), "loose text")
+
+
+class TestIsRetryable(unittest.TestCase):
+    """4xx errors (other than 429) are deterministic; retrying them is futile."""
+
+    def _http_error(self, status: int) -> httpx.HTTPStatusError:
+        # Build a minimal HTTPStatusError without making a real request
+        request = httpx.Request("POST", "https://example.test/v1/messages")
+        response = httpx.Response(status_code=status, request=request)
+        return httpx.HTTPStatusError("err", request=request, response=response)
+
+    def test_5xx_is_retryable(self) -> None:
+        self.assertTrue(_is_retryable(self._http_error(500)))
+        self.assertTrue(_is_retryable(self._http_error(503)))
+
+    def test_429_is_retryable(self) -> None:
+        self.assertTrue(_is_retryable(self._http_error(429)))
+
+    def test_4xx_not_retryable(self) -> None:
+        self.assertFalse(_is_retryable(self._http_error(400)))
+        self.assertFalse(_is_retryable(self._http_error(401)))
+        self.assertFalse(_is_retryable(self._http_error(403)))
+        self.assertFalse(_is_retryable(self._http_error(422)))
+
+    def test_network_errors_are_retryable(self) -> None:
+        self.assertTrue(_is_retryable(httpx.ConnectError("boom")))
+        self.assertTrue(_is_retryable(httpx.ReadTimeout("slow")))
 
 
 if __name__ == "__main__":

@@ -46,45 +46,6 @@ SUMMARY_MARKER = "<!-- ai-pr-reviewer:summary -->"
 ANTHROPIC_VERSION = "2023-06-01"
 ANTHROPIC_MAX_TOKENS = 8192
 
-# Tool definition that forces structured JSON output. The model must call this
-# tool with `input` matching the schema; we extract that input as the review.
-REVIEW_TOOL = {
-    "name": "submit_review",
-    "description": "Submit the code review verdict and inline comments. Call this tool exactly once with the full review.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "summary": {
-                "type": "string",
-                "description": "1-3 sentence summary of the review.",
-            },
-            "verdict": {
-                "type": "string",
-                "enum": ["approve", "request_changes", "comment"],
-                "description": "Overall review verdict.",
-            },
-            "comments": {
-                "type": "array",
-                "description": "Up to 20 inline comments. Empty array if LGTM.",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "File path relative to repo root."},
-                        "line": {"type": "integer", "description": "1-based line number in the NEW file."},
-                        "severity": {
-                            "type": "string",
-                            "enum": ["nit", "warning", "blocker"],
-                        },
-                        "body": {"type": "string", "description": "1-3 sentence comment."},
-                    },
-                    "required": ["path", "line", "body"],
-                },
-            },
-        },
-        "required": ["summary", "verdict", "comments"],
-    },
-}
-
 
 # ---------- env helpers ----------
 
@@ -285,6 +246,16 @@ def parse_anthropic_response(data: dict) -> str:
     )
 
 
+def _is_retryable(e: Exception) -> bool:
+    """Retry transient failures only. 4xx (except 429) are deterministic and
+    should surface immediately so the user can fix the request."""
+    if isinstance(e, httpx.HTTPStatusError):
+        status = e.response.status_code if e.response is not None else 0
+        return status >= 500 or status == 429
+    # Network errors, timeouts, connection resets — all transient
+    return True
+
+
 def call_anthropic_compat(
     *,
     base_url: str,
@@ -299,6 +270,9 @@ def call_anthropic_compat(
 
     Anthropic uses x-api-key + anthropic-version headers (not Bearer),
     requires max_tokens, and treats the system prompt as a top-level field.
+
+    Retries on transient failures (5xx, 429, network errors). 4xx errors
+    other than 429 are raised immediately — retrying them is futile.
     """
     url = f"{base_url.rstrip('/')}/v1/messages"
     system_text = ""
@@ -324,25 +298,17 @@ def call_anthropic_compat(
         "User-Agent": USER_AGENT,
     }
 
-    last_err: Optional[Exception] = None
     for attempt in range(max_retries + 1):
         try:
             with httpx.Client(timeout=timeout) as client:
                 r = client.post(url, headers=headers, json=body)
-                # 5xx and 429 are retryable
-                if r.status_code >= 500 or r.status_code == 429:
-                    raise httpx.HTTPStatusError(
-                        f"{r.status_code}: {r.text[:200]}", request=r.request, response=r
-                    )
                 r.raise_for_status()
                 return parse_anthropic_response(r.json())
-        except Exception as e:  # broad: network, timeout, http
-            last_err = e
-            if attempt < max_retries:
+        except Exception as e:
+            if attempt < max_retries and _is_retryable(e):
                 time.sleep(2 ** attempt)
-            else:
-                raise
-    raise last_err  # unreachable, but mypy-friendly
+                continue
+            raise
 
 
 # providers are registered by name → caller function
