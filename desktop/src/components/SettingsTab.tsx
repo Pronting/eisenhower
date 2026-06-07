@@ -44,6 +44,17 @@ function ShortcutSection() {
   const [recording, setRecording] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Re-apply the saved shortcut on mount so it actually works in Rust
+  // (otherwise Rust only knows the default registered in setup()).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (shortcut === "Ctrl+Shift+N") return; // default already registered
+    invoke<string>("register_shortcut", { combination: shortcut }).catch(
+      () => undefined,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!recording) return;
     const handler = async (e: KeyboardEvent) => {
@@ -290,6 +301,7 @@ function SchedulesSection({ token, onUnauthorized }: Props) {
 
       {(creating || editing) && (
         <ScheduleEditor
+          key={editing ? `edit-${editing.id}` : "new"}
           token={token}
           schedule={editing}
           onUnauthorized={onUnauthorized}

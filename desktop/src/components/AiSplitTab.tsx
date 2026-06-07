@@ -238,7 +238,7 @@ export default function AiSplitTab({ token, onUnauthorized }: Props) {
               onClick={handleSubmit}
               disabled={busy}
             >
-              {busy ? "提交中…" : "确认入库"}
+              {busy ? "提交中…" : "确认"}
             </button>
           </div>
         </>

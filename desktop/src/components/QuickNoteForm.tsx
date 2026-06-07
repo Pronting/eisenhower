@@ -148,7 +148,7 @@ export default function QuickNoteForm({ token, onUnauthorized }: Props) {
           + 添加任务
         </button>
         <button className="btn btn-primary" onClick={submit} disabled={busy}>
-          {busy ? "提交中…" : "确认入库"}
+          {busy ? "提交中…" : "确认"}
         </button>
       </div>
     </>
