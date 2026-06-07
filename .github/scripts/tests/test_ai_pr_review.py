@@ -245,6 +245,38 @@ class TestParseAnthropicResponse(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_anthropic_response({"id": "msg_01"})
 
+    def test_thinking_block_with_type(self) -> None:
+        # DeepSeek-style: type: "thinking" block, no text
+        data = {"content": [{"type": "thinking", "thinking": "reasoning here"}]}
+        self.assertEqual(parse_anthropic_response(data), "reasoning here")
+
+    def test_thinking_block_without_type(self) -> None:
+        # MiniMax-style: no type field, just "thinking" key
+        data = {"content": [{"thinking": "reasoning here"}]}
+        self.assertEqual(parse_anthropic_response(data), "reasoning here")
+
+    def test_thinking_and_text_prefers_text(self) -> None:
+        data = {
+            "content": [
+                {"type": "thinking", "thinking": "reasoning"},
+                {"type": "text", "text": "actual response"},
+            ]
+        }
+        self.assertEqual(parse_anthropic_response(data), "actual response")
+
+    def test_concatenates_multiple_thinking_blocks(self) -> None:
+        data = {
+            "content": [
+                {"type": "thinking", "thinking": "part 1"},
+                {"thinking": "part 2"},  # no type
+            ]
+        }
+        self.assertEqual(parse_anthropic_response(data), "part 1\npart 2")
+
+    def test_block_with_text_field_no_type(self) -> None:
+        data = {"content": [{"text": "loose text"}]}
+        self.assertEqual(parse_anthropic_response(data), "loose text")
+
 
 if __name__ == "__main__":
     unittest.main()

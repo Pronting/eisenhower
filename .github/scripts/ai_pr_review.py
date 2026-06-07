@@ -46,7 +46,7 @@ PROMPT_FILE = Path(__file__).parent / "prompts" / "review_system.md"
 USER_AGENT = "ai-pr-reviewer/1.0"
 SUMMARY_MARKER = "<!-- ai-pr-reviewer:summary -->"
 ANTHROPIC_VERSION = "2023-06-01"
-ANTHROPIC_MAX_TOKENS = 4096
+ANTHROPIC_MAX_TOKENS = 8192
 
 
 # ---------- env helpers ----------
@@ -209,12 +209,30 @@ def build_messages(pr: dict, diff: str, files: list[dict], system_prompt: str) -
 # ---------- LLM providers ----------
 
 def parse_anthropic_response(data: dict) -> str:
-    """Extract the first text block from an Anthropic /v1/messages response."""
+    """Extract text from an Anthropic /v1/messages response.
+
+    Three-pass strategy for compatibility with non-standard "Anthropic-compatible"
+    endpoints (e.g., MiniMax, DeepSeek) that may omit the `type` field on thinking
+    blocks or return thinking-only when the budget is exhausted:
+      1. First block with type == "text"
+      2. First block that has a "text" field
+      3. Concatenation of all "thinking" blocks
+    """
     content = data.get("content")
     if isinstance(content, list):
         for block in content:
             if isinstance(block, dict) and block.get("type") == "text":
                 return block.get("text", "")
+        for block in content:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                return block["text"]
+        thinking_parts = [
+            block["thinking"]
+            for block in content
+            if isinstance(block, dict) and isinstance(block.get("thinking"), str)
+        ]
+        if thinking_parts:
+            return "\n".join(thinking_parts)
     if isinstance(content, str):
         return content
     raise ValueError(
