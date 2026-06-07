@@ -1,0 +1,59 @@
+name: AI PR Review (MiniMax + DeepSeek)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review manually (workflow_dispatch only)'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: .github/scripts/requirements.txt
+
+      - name: Install dependencies
+        working-directory: .github/scripts
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        working-directory: .github/scripts
+        run: python -m unittest discover -s tests -v
+
+      - name: Run AI PR Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          PRIMARY_PROVIDER: minimax
+          MINIMAX_BASE_URL: ${{ vars.MINIMAX_BASE_URL }}
+          MINIMAX_MODEL: ${{ vars.MINIMAX_MODEL }}
+          DEEPSEEK_BASE_URL: ${{ vars.DEEPSEEK_BASE_URL }}
+          DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+        run: python .github/scripts/ai_pr_review.py
