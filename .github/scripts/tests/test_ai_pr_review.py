@@ -237,7 +237,8 @@ class TestParseAnthropicResponse(unittest.TestCase):
         self.assertEqual(parse_anthropic_response({"content": "raw string"}), "raw string")
 
     def test_ignores_non_text_blocks(self) -> None:
-        data = {"content": [{"type": "tool_use", "id": "x"}]}
+        # Image blocks have no text/thinking/tool_use and should raise
+        data = {"content": [{"type": "image", "source": {"type": "base64", "data": "..."}}]}
         with self.assertRaises(ValueError):
             parse_anthropic_response(data)
 
@@ -276,6 +277,31 @@ class TestParseAnthropicResponse(unittest.TestCase):
     def test_block_with_text_field_no_type(self) -> None:
         data = {"content": [{"text": "loose text"}]}
         self.assertEqual(parse_anthropic_response(data), "loose text")
+
+    def test_tool_use_block_takes_priority(self) -> None:
+        data = {
+            "content": [
+                {"type": "thinking", "thinking": "reasoning"},
+                {
+                    "type": "tool_use",
+                    "id": "toolu_1",
+                    "name": "submit_review",
+                    "input": {"summary": "LGTM", "verdict": "approve", "comments": []},
+                },
+            ]
+        }
+        result = parse_anthropic_response(data)
+        # Must be valid JSON parseable into the original dict
+        self.assertEqual(json.loads(result), {"summary": "LGTM", "verdict": "approve", "comments": []})
+
+    def test_tool_use_preferred_over_text(self) -> None:
+        data = {
+            "content": [
+                {"type": "text", "text": "prose prose"},
+                {"type": "tool_use", "name": "submit_review", "input": {"a": 1}},
+            ]
+        }
+        self.assertEqual(json.loads(parse_anthropic_response(data)), {"a": 1})
 
 
 if __name__ == "__main__":

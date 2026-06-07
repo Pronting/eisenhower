@@ -48,6 +48,45 @@ SUMMARY_MARKER = "<!-- ai-pr-reviewer:summary -->"
 ANTHROPIC_VERSION = "2023-06-01"
 ANTHROPIC_MAX_TOKENS = 8192
 
+# Tool definition that forces structured JSON output. The model must call this
+# tool with `input` matching the schema; we extract that input as the review.
+REVIEW_TOOL = {
+    "name": "submit_review",
+    "description": "Submit the code review verdict and inline comments. Call this tool exactly once with the full review.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "summary": {
+                "type": "string",
+                "description": "1-3 sentence summary of the review.",
+            },
+            "verdict": {
+                "type": "string",
+                "enum": ["approve", "request_changes", "comment"],
+                "description": "Overall review verdict.",
+            },
+            "comments": {
+                "type": "array",
+                "description": "Up to 20 inline comments. Empty array if LGTM.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "File path relative to repo root."},
+                        "line": {"type": "integer", "description": "1-based line number in the NEW file."},
+                        "severity": {
+                            "type": "string",
+                            "enum": ["nit", "warning", "blocker"],
+                        },
+                        "body": {"type": "string", "description": "1-3 sentence comment."},
+                    },
+                    "required": ["path", "line", "body"],
+                },
+            },
+        },
+        "required": ["summary", "verdict", "comments"],
+    },
+}
+
 
 # ---------- env helpers ----------
 
@@ -209,17 +248,20 @@ def build_messages(pr: dict, diff: str, files: list[dict], system_prompt: str) -
 # ---------- LLM providers ----------
 
 def parse_anthropic_response(data: dict) -> str:
-    """Extract text from an Anthropic /v1/messages response.
+    """Extract the review payload from an Anthropic /v1/messages response.
 
-    Three-pass strategy for compatibility with non-standard "Anthropic-compatible"
-    endpoints (e.g., MiniMax, DeepSeek) that may omit the `type` field on thinking
-    blocks or return thinking-only when the budget is exhausted:
-      1. First block with type == "text"
-      2. First block that has a "text" field
-      3. Concatenation of all "thinking" blocks
+    Priority:
+      1. tool_use block (input is structured JSON we asked for)
+      2. text block with type == "text"
+      3. any block with a "text" field
+      4. concatenation of "thinking" blocks (last-resort, likely unparseable)
     """
     content = data.get("content")
     if isinstance(content, list):
+        # tool_use: serialize the structured input back to JSON
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                return json.dumps(block.get("input") or {})
         for block in content:
             if isinstance(block, dict) and block.get("type") == "text":
                 return block.get("text", "")
@@ -264,15 +306,12 @@ def call_anthropic_compat(
         else:
             chat_messages.append(m)
 
-    # Anthropic prefill trick: force the model to start its response with `{` so
-    # the output is structurally guaranteed to be JSON. The API echoes the
-    # prefill back in the response, so we get a valid `{...}` payload.
-    chat_messages.append({"role": "assistant", "content": "{"})
-
     body: dict[str, Any] = {
         "model": model,
         "messages": chat_messages,
         "max_tokens": max_tokens,
+        "tools": [REVIEW_TOOL],
+        "tool_choice": {"type": "tool", "name": "submit_review"},
     }
     if system_text.strip():
         body["system"] = system_text.strip()
