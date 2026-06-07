@@ -129,6 +129,64 @@ class PushConfigResponse(BaseModel):
 
 
 # ======================================================================
+# Push Schedule (cron)
+# ======================================================================
+
+class PushScheduleCreate(BaseModel):
+    cron_expression: str = Field(min_length=9, max_length=100)
+    push_type: str = Field(max_length=20)
+    address: str = Field(max_length=255)
+    label: str = Field(default="", max_length=100)
+    enabled: bool = True
+
+    @field_validator("push_type")
+    @classmethod
+    def validate_push_type(cls, v: str) -> str:
+        if v not in ("email", "webhook", "desktop"):
+            raise ValueError("push_type must be one of: email, webhook, desktop")
+        return v
+
+
+class PushScheduleUpdate(BaseModel):
+    cron_expression: Optional[str] = Field(default=None, min_length=9, max_length=100)
+    push_type: Optional[str] = Field(default=None, max_length=20)
+    address: Optional[str] = Field(default=None, max_length=255)
+    label: Optional[str] = Field(default=None, max_length=100)
+    enabled: Optional[bool] = None
+
+
+class PushScheduleResponse(BaseModel):
+    id: int
+    user_id: int
+    cron_expression: str
+    push_type: str
+    address: str
+    label: str
+    enabled: bool
+    created_at: datetime
+    last_fired_at: Optional[datetime] = None
+    next_fire_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CronPreview(BaseModel):
+    cron: str
+    next_runs: list[datetime]
+    human_readable: str = ""
+
+
+class CronGenerateRequest(BaseModel):
+    description: str = Field(min_length=1, max_length=500)
+
+
+class CronGenerateResponse(BaseModel):
+    candidates: list[CronPreview]
+    reasoning: str = ""
+
+
+# ======================================================================
 # Push Log
 # ======================================================================
 

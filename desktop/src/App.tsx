@@ -4,6 +4,7 @@ import { validateToken, getStoredToken } from "./lib/desktop-auth";
 import QrAuthPanel from "./components/QrAuthPanel";
 import QuickNoteForm from "./components/QuickNoteForm";
 import AiSplitTab from "./components/AiSplitTab";
+import SettingsTab from "./components/SettingsTab";
 import Titlebar from "./components/Titlebar";
 import TabBar from "./components/TabBar";
 
@@ -80,11 +81,10 @@ export default function App() {
               />
             )}
             {tab === "settings" && (
-              <div className="auth-screen">
-                <p style={{ color: "var(--text-muted)" }}>
-                  设置 Tab（即将上线）
-                </p>
-              </div>
+              <SettingsTab
+                token={state.token}
+                onUnauthorized={handleLogout}
+              />
             )}
           </>
         )}

@@ -77,3 +77,18 @@ class DeviceAuthRequest(Base):
     status = Column(String(20), default="pending")  # pending / authorized / expired / used
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PushSchedule(Base):
+    """Recurring push schedule (cron expression). User-level."""
+    __tablename__ = "push_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    cron_expression = Column(String(100), nullable=False)
+    push_type = Column(String(20), nullable=False)  # "email" / "webhook" / "desktop"
+    address = Column(String(255), nullable=False)  # email, webhook URL, or "self" for desktop
+    label = Column(String(100), default="")
+    enabled = Column(Integer, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_fired_at = Column(DateTime(timezone=True), nullable=True)

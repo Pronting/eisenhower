@@ -13,3 +13,4 @@ langchain>=1.2.15
 langchain-community>=0.4.1
 langchain-openai>=1.2.1
 openai>=2.32.0
+croniter>=2.0.1

@@ -33,6 +33,10 @@
         { "url": "http://127.0.0.1:8000/**" },
         { "url": "http://106.53.173.60:8000/**" }
       ]
-    }
+    },
+    "notification:default",
+    "notification:allow-notify",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission"
   ]
 }

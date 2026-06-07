@@ -13,6 +13,7 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_notification::NotificationExt;
 
 const DEFAULT_SHORTCUT: &str = "CommandOrControl+Shift+N";
 
@@ -156,6 +157,23 @@ fn register_shortcut(
 }
 
 // ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+/// Send an OS-level notification (Windows toast / Linux libnotify / macOS NSUserNotification).
+/// Returns `true` on success, `false` if the platform refused (e.g. permission denied).
+#[tauri::command]
+fn send_notification(app: AppHandle, title: String, body: String) -> Result<bool, CommandError> {
+    let result = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show();
+    Ok(result.is_ok())
+}
+
+// ---------------------------------------------------------------------------
 // App entry point
 // ---------------------------------------------------------------------------
 
@@ -165,6 +183,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             toggle_window,
             show_main_window,
@@ -172,6 +191,7 @@ pub fn run() {
             close_window,
             generate_qrcode,
             register_shortcut,
+            send_notification,
         ])
         .setup(|app| {
             // ---- System tray ------------------------------------------------
