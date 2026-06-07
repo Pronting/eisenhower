@@ -6,6 +6,7 @@ Run: python -m unittest discover -s tests -v
 from __future__ import annotations
 
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -17,6 +18,7 @@ from ai_pr_review import (  # noqa: E402
     normalize_review,
     parse_file_patches,
     parse_review,
+    get_env,
 )
 
 
@@ -181,6 +183,33 @@ class TestShouldSkip(unittest.TestCase):
 
     def test_empty_does_not_skip(self) -> None:
         self.assertFalse(self._should_skip(""))
+
+
+class TestGetEnv(unittest.TestCase):
+    """Regression: GitHub Actions passes workflow `vars.X` as empty string when
+    the variable isn't configured. os.environ.get(name, default=Y) would return
+    "" in that case; we want it to fall through to the default."""
+
+    def setUp(self) -> None:
+        self._snapshot = dict(os.environ)
+        for k in ("_TEST_EMPTY_VAR_", "_TEST_SET_VAR_", "_TEST_DEFAULT_VAR_"):
+            os.environ.pop(k, None)
+
+    def tearDown(self) -> None:
+        for k in ("_TEST_EMPTY_VAR_", "_TEST_SET_VAR_", "_TEST_DEFAULT_VAR_"):
+            os.environ.pop(k, None)
+        os.environ.update(self._snapshot)
+
+    def test_unset_returns_default(self) -> None:
+        self.assertEqual(get_env("_TEST_UNSET_", default="fallback"), "fallback")
+
+    def test_empty_string_returns_default(self) -> None:
+        os.environ["_TEST_EMPTY_VAR_"] = ""
+        self.assertEqual(get_env("_TEST_EMPTY_VAR_", default="fallback"), "fallback")
+
+    def test_set_value_wins(self) -> None:
+        os.environ["_TEST_SET_VAR_"] = "real"
+        self.assertEqual(get_env("_TEST_SET_VAR_", default="fallback"), "real")
 
 
 if __name__ == "__main__":

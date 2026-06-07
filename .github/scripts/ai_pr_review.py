@@ -50,7 +50,10 @@ SUMMARY_MARKER = "<!-- ai-pr-reviewer:summary -->"
 # ---------- env helpers ----------
 
 def get_env(name: str, *, default: Optional[str] = None, required: bool = False) -> str:
-    val = os.environ.get(name, default)
+    # Treat empty-string env the same as unset, so workflow vars that the
+    # user hasn't configured (which GitHub passes as "") fall through to the
+    # default instead of breaking URL construction.
+    val = os.environ.get(name) or default
     if required and not val:
         print(f"::error::missing required env: {name}", file=sys.stderr)
         sys.exit(2)
