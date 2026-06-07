@@ -264,6 +264,11 @@ def call_anthropic_compat(
         else:
             chat_messages.append(m)
 
+    # Anthropic prefill trick: force the model to start its response with `{` so
+    # the output is structurally guaranteed to be JSON. The API echoes the
+    # prefill back in the response, so we get a valid `{...}` payload.
+    chat_messages.append({"role": "assistant", "content": "{"})
+
     body: dict[str, Any] = {
         "model": model,
         "messages": chat_messages,
