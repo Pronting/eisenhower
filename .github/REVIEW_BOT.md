@@ -16,10 +16,9 @@ It does **not** block merging — there is no required check. The reviewer is in
 
 | Name | Required | Purpose |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | Recommended | **Primary provider.** DeepSeek's `/anthropic` endpoint is a real Anthropic-protocol implementation. |
-| `MINIMAX_API_KEY` | Recommended | Fallback provider. The MiniMax `/anthropic` endpoint is surface-level compatible only — it ignores `tool_use` and `prefill`, so the model just writes prose and parse fails. Used only when DeepSeek is down. |
+| `DEEPSEEK_API_KEY` | **Required** | The only provider. DeepSeek's `/anthropic` endpoint is a real Anthropic-protocol implementation; the model follows the JSON schema reliably. |
 
-Add them under **Settings → Secrets and variables → Actions → New repository secret** (or at the org level for shared usage).
+Add it under **Settings → Secrets and variables → Actions → New repository secret** (or at the org level for shared usage).
 
 ## Optional variables
 

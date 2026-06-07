@@ -14,9 +14,7 @@ At least one of these must be set:
   DEEPSEEK_API_KEY     enables the DeepSeek provider (used as fallback)
 
 Optional env:
-  PRIMARY_PROVIDER     "deepseek" (default) or "minimax"
-  MINIMAX_BASE_URL     default https://api.minimaxi.com/anthropic (Anthropic protocol)
-  MINIMAX_MODEL        default MiniMax-M3
+  PRIMARY_PROVIDER     "deepseek" only
   DEEPSEEK_BASE_URL    default https://api.deepseek.com/anthropic (Anthropic protocol)
   DEEPSEEK_MODEL       default deepseek-v4-pro
 
@@ -91,9 +89,14 @@ REVIEW_TOOL = {
 # ---------- env helpers ----------
 
 def get_env(name: str, *, default: Optional[str] = None, required: bool = False) -> str:
-    # Treat empty-string env the same as unset, so workflow vars that the
-    # user hasn't configured (which GitHub passes as "") fall through to the
-    # default instead of breaking URL construction.
+    """Read an env var. Treats empty-string the same as unset (so workflow
+    vars the user hasn't configured fall through to `default`).
+
+    `required=True` raises SystemExit only for true config errors (env vars
+    that the caller cannot meaningfully default). For per-provider API keys,
+    prefer raising RuntimeError inside the caller so the outer fallback loop
+    can catch it.
+    """
     val = os.environ.get(name) or default
     if required and not val:
         print(f"::error::missing required env: {name}", file=sys.stderr)
@@ -247,6 +250,11 @@ def build_messages(pr: dict, diff: str, files: list[dict], system_prompt: str) -
 
 # ---------- LLM providers ----------
 
+# DeepSeek is the sole reviewer. Its /anthropic endpoint is a real
+# Anthropic-protocol implementation; the model follows the system prompt's
+# JSON schema reliably. Other providers can be added by registering more
+# entries in CALLERS and extending call_with_fallback.
+
 def parse_anthropic_response(data: dict) -> str:
     """Extract the review payload from an Anthropic /v1/messages response.
 
@@ -338,18 +346,10 @@ def call_anthropic_compat(
 
 
 # providers are registered by name → caller function
-def _call_minimax(messages: list[dict]) -> str:
-    api_key = get_env("MINIMAX_API_KEY", required=True)
-    return call_anthropic_compat(
-        base_url=get_env("MINIMAX_BASE_URL", default="https://api.minimaxi.com/anthropic"),
-        api_key=api_key,
-        model=get_env("MINIMAX_MODEL", default="MiniMax-M3"),
-        messages=messages,
-    )
-
-
 def _call_deepseek(messages: list[dict]) -> str:
-    api_key = get_env("DEEPSEEK_API_KEY", required=True)
+    api_key = get_env("DEEPSEEK_API_KEY")
+    if not api_key:
+        raise RuntimeError("DEEPSEEK_API_KEY not set")
     return call_anthropic_compat(
         base_url=get_env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/anthropic"),
         api_key=api_key,
@@ -359,21 +359,20 @@ def _call_deepseek(messages: list[dict]) -> str:
 
 
 CALLERS: dict[str, Callable[[list[dict]], str]] = {
-    "minimax": _call_minimax,
     "deepseek": _call_deepseek,
 }
 
 
 def call_with_fallback(messages: list[dict], primary: str) -> tuple[str, str]:
-    """Returns (response_text, provider_used). Falls back to the other provider on failure."""
-    order = [primary] + [p for p in ("minimax", "deepseek") if p != primary]
+    """Returns (response_text, provider_used). Tries `primary` first, then
+    iterates the remaining registered providers in CALLERS order. Each caller
+    must raise (not sys.exit) on failure so the loop can continue.
+    """
+    if primary not in CALLERS:
+        raise ValueError(f"unknown primary provider: {primary!r}")
+    order = [primary] + [p for p in CALLERS if p != primary]
     last_err: Optional[Exception] = None
     for provider in order:
-        api_key_env = "MINIMAX_API_KEY" if provider == "minimax" else "DEEPSEEK_API_KEY"
-        if not get_env(api_key_env):
-            print(f"::warning::{api_key_env} not set, skipping {provider}", file=sys.stderr)
-            last_err = RuntimeError(f"{api_key_env} not set")
-            continue
         try:
             return CALLERS[provider](messages), provider
         except Exception as e:
@@ -500,12 +499,12 @@ def main() -> int:
         )
         return 2
 
-    # check that at least one provider is configured
-    if not get_env("MINIMAX_API_KEY") and not get_env("DEEPSEEK_API_KEY"):
+    # check that the provider is configured
+    if not get_env("DEEPSEEK_API_KEY"):
         post_summary_comment(
             repo, pr_number, token,
             summary="", verdict="comment", provider=primary, model="-",
-            ok=False, error="neither MINIMAX_API_KEY nor DEEPSEEK_API_KEY is set",
+            ok=False, error="DEEPSEEK_API_KEY not set",
         )
         return 1
 
@@ -544,11 +543,7 @@ def main() -> int:
         )
         return 1
 
-    used_model = (
-        get_env("MINIMAX_MODEL", default="MiniMax-M3")
-        if used_provider == "minimax"
-        else get_env("DEEPSEEK_MODEL", default="deepseek-v4-pro")
-    )
+    used_model = get_env("DEEPSEEK_MODEL", default="deepseek-v4-pro")
 
     # parse
     try:
