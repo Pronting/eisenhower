@@ -161,6 +161,23 @@ textarea.input {
   min-height: 36px;
 }
 
+/* --- Date / time picker: ensure visibility on dark background --- */
+input[type="date"].input,
+input[type="time"].input {
+  color-scheme: dark;
+  min-height: 32px;
+  /* Invert the calendar icon so it shows light-on-dark */
+  filter: invert(1) hue-rotate(180deg);
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="date"].input::-webkit-calendar-picker-indicator,
+input[type="time"].input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
 .quadrant-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

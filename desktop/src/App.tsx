@@ -3,15 +3,26 @@ import { invoke } from "@tauri-apps/api/core";
 import { validateToken, getStoredToken } from "./lib/desktop-auth";
 import QrAuthPanel from "./components/QrAuthPanel";
 import QuickNoteForm from "./components/QuickNoteForm";
+import AiSplitTab from "./components/AiSplitTab";
 import Titlebar from "./components/Titlebar";
+import TabBar from "./components/TabBar";
 
 type AppState =
   | { kind: "loading" }
   | { kind: "unauthorized" }
   | { kind: "authorized"; token: string };
 
+type TabKey = "quick" | "ai" | "settings";
+
+const TABS: { key: TabKey; label: string; icon: string }[] = [
+  { key: "quick", label: "快速", icon: "✏️" },
+  { key: "ai", label: "AI 拆分", icon: "✨" },
+  { key: "settings", label: "设置", icon: "⚙️" },
+];
+
 export default function App() {
   const [state, setState] = useState<AppState>({ kind: "loading" });
+  const [tab, setTab] = useState<TabKey>("quick");
 
   useEffect(() => {
     (async () => {
@@ -50,10 +61,32 @@ export default function App() {
           <QrAuthPanel onAuthorized={handleAuthorized} />
         )}
         {state.kind === "authorized" && (
-          <QuickNoteForm
-            token={state.token}
-            onUnauthorized={handleLogout}
-          />
+          <>
+            <TabBar
+              tabs={TABS}
+              active={tab}
+              onChange={(k) => setTab(k as TabKey)}
+            />
+            {tab === "quick" && (
+              <QuickNoteForm
+                token={state.token}
+                onUnauthorized={handleLogout}
+              />
+            )}
+            {tab === "ai" && (
+              <AiSplitTab
+                token={state.token}
+                onUnauthorized={handleLogout}
+              />
+            )}
+            {tab === "settings" && (
+              <div className="auth-screen">
+                <p style={{ color: "var(--text-muted)" }}>
+                  设置 Tab（即将上线）
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -194,25 +194,39 @@ pub fn run() {
                             let _ = window.set_focus();
                         }
                     }
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        // Force-quit all threads/processes; works around platforms
+                        // where the event loop refuses to exit cleanly.
+                        app.exit(0);
+                        std::process::exit(0);
+                    }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
+                    // Explicitly branch on the mouse button so left/right never
+                    // get confused. Left toggles the window, right is handled
+                    // by the OS (it shows the registered menu automatically).
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                }
                             }
                         }
+                        // Right click is automatically shown by the OS
+                        // (because we registered `.menu(&menu)` above).
+                        // We intentionally do nothing here to avoid a
+                        // double-menu flash.
+                        _ => {}
                     }
                 })
                 .build(app)?;

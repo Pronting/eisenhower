@@ -16,7 +16,7 @@ export default function QrAuthPanel({ onAuthorized }: Props) {
   const [userCode, setUserCode] = useState<string | null>(null);
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const pollRef = useRef<number | null>(null);
 
