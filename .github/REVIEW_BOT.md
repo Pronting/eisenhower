@@ -1,6 +1,6 @@
-# AI PR Reviewer
+# AI PR Reviewer (DeepSeek)
 
-Open a pull request → a bot reviews it automatically and posts comments back to the PR. Primary model is **MiniMax** with **DeepSeek** as automatic fallback.
+Open a pull request → a bot reviews it automatically and posts comments back to the PR. Uses **DeepSeek** via its Anthropic-compatible endpoint at `https://api.deepseek.com/anthropic`.
 
 ## What it does
 

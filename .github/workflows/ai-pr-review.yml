@@ -1,4 +1,4 @@
-name: AI PR Review (MiniMax + DeepSeek)
+name: AI PR Review (DeepSeek)
 
 on:
   pull_request:
