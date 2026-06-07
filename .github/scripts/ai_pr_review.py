@@ -18,7 +18,7 @@ Optional env:
   MINIMAX_BASE_URL     default https://api.minimaxi.com/v1
   MINIMAX_MODEL        default MiniMax-M3
   DEEPSEEK_BASE_URL    default https://api.deepseek.com/v1
-  DEEPSEEK_MODEL       default deepseek-chat
+  DEEPSEEK_MODEL       default deepseek-v4-pro
 
 Exit codes:
   0  success
@@ -264,7 +264,7 @@ def _call_deepseek(messages: list[dict]) -> str:
     return call_openai_compat(
         base_url=get_env("DEEPSEEK_BASE_URL", default="https://api.deepseek.com/v1"),
         api_key=api_key,
-        model=get_env("DEEPSEEK_MODEL", default="deepseek-chat"),
+        model=get_env("DEEPSEEK_MODEL", default="deepseek-v4-pro"),
         messages=messages,
     )
 
@@ -426,8 +426,10 @@ def main() -> int:
     except httpx.HTTPStatusError as e:
         print(f"::error::fetch_pr failed: {e}", file=sys.stderr)
         return 2
-    body = (pr.get("body") or "").lower()
-    if "/ai-skip" in body:
+    body = pr.get("body") or ""
+    # Skip only when /ai-skip appears on its own line — substring match would
+    # false-positive on documentation that mentions the keyword.
+    if any(line.strip().lower() == "/ai-skip" for line in body.splitlines()):
         post_summary_comment(
             repo, pr_number, token,
             summary="", verdict="comment", provider=primary, model="-",
@@ -456,7 +458,7 @@ def main() -> int:
     used_model = (
         get_env("MINIMAX_MODEL", default="MiniMax-M3")
         if used_provider == "minimax"
-        else get_env("DEEPSEEK_MODEL", default="deepseek-chat")
+        else get_env("DEEPSEEK_MODEL", default="deepseek-v4-pro")
     )
 
     # parse

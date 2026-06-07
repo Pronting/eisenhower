@@ -30,11 +30,11 @@ Configure under **Settings → Secrets and variables → Actions → Variables**
 | `MINIMAX_BASE_URL` | `https://api.minimaxi.com/v1` | Override if your account uses a different region. |
 | `MINIMAX_MODEL` | `MiniMax-M3` | Override if you want a different MiniMax model. |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` | |
-| `DEEPSEEK_MODEL` | `deepseek-chat` | Use `deepseek-reasoner` for stronger reasoning. |
+| `DEEPSEEK_MODEL` | `deepseek-v4-pro` | Use `deepseek-reasoner` for stronger reasoning. |
 
 ## How to skip a PR
 
-Add the literal string `/ai-skip` anywhere in the PR description body. The bot will post a "skipped" comment and exit cleanly.
+Add a line that is exactly `/ai-skip` (alone on its own line) anywhere in the PR description body. The bot will post a "skipped" comment and exit cleanly. Inline mentions like `` `/ai-skip` `` in prose are ignored.
 
 ## How to re-trigger manually
 

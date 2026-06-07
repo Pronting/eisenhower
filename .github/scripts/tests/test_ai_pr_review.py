@@ -161,5 +161,27 @@ class TestParseReview(unittest.TestCase):
         self.assertEqual(result["verdict"], "approve")
 
 
+class TestShouldSkip(unittest.TestCase):
+    """Regression: substring match in PR body false-positives on docs that
+    mention /ai-skip inline. Only a standalone line should trigger skip."""
+
+    def _should_skip(self, body: str) -> bool:
+        return any(line.strip().lower() == "/ai-skip" for line in body.splitlines())
+
+    def test_standalone_line_skips(self) -> None:
+        self.assertTrue(self._should_skip("/ai-skip\n"))
+
+    def test_standalone_line_in_middle(self) -> None:
+        self.assertTrue(self._should_skip("intro\n\n/ai-skip\n\nmore text"))
+
+    def test_inline_in_prose_does_not_skip(self) -> None:
+        self.assertFalse(self._should_skip(
+            "Add the literal string `/ai-skip` anywhere in the body."
+        ))
+
+    def test_empty_does_not_skip(self) -> None:
+        self.assertFalse(self._should_skip(""))
+
+
 if __name__ == "__main__":
     unittest.main()
