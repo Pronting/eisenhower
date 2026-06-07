@@ -247,7 +247,7 @@ def call_anthropic_compat(
     model: str,
     messages: list[dict],
     max_tokens: int = ANTHROPIC_MAX_TOKENS,
-    timeout: int = 120,
+    timeout: int = 300,
     max_retries: int = 2,
 ) -> str:
     """Call an Anthropic-protocol endpoint (POST <base>/v1/messages).
