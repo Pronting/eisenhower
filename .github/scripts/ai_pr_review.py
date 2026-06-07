@@ -14,7 +14,7 @@ At least one of these must be set:
   DEEPSEEK_API_KEY     enables the DeepSeek provider (used as fallback)
 
 Optional env:
-  PRIMARY_PROVIDER     "minimax" (default) or "deepseek"
+  PRIMARY_PROVIDER     "deepseek" (default) or "minimax"
   MINIMAX_BASE_URL     default https://api.minimaxi.com/anthropic (Anthropic protocol)
   MINIMAX_MODEL        default MiniMax-M3
   DEEPSEEK_BASE_URL    default https://api.deepseek.com/anthropic (Anthropic protocol)
@@ -251,17 +251,12 @@ def parse_anthropic_response(data: dict) -> str:
     """Extract the review payload from an Anthropic /v1/messages response.
 
     Priority:
-      1. tool_use block (input is structured JSON we asked for)
-      2. text block with type == "text"
-      3. any block with a "text" field
-      4. concatenation of "thinking" blocks (last-resort, likely unparseable)
+      1. text block with type == "text"
+      2. any block with a "text" field
+      3. concatenation of "thinking" blocks (last-resort, likely unparseable)
     """
     content = data.get("content")
     if isinstance(content, list):
-        # tool_use: serialize the structured input back to JSON
-        for block in content:
-            if isinstance(block, dict) and block.get("type") == "tool_use":
-                return json.dumps(block.get("input") or {})
         for block in content:
             if isinstance(block, dict) and block.get("type") == "text":
                 return block.get("text", "")
@@ -310,8 +305,6 @@ def call_anthropic_compat(
         "model": model,
         "messages": chat_messages,
         "max_tokens": max_tokens,
-        "tools": [REVIEW_TOOL],
-        "tool_choice": {"type": "tool", "name": "submit_review"},
     }
     if system_text.strip():
         body["system"] = system_text.strip()
@@ -499,7 +492,7 @@ def main() -> int:
         print(f"::error::PR_NUMBER must be int, got {pr_number_str!r}", file=sys.stderr)
         return 2
 
-    primary = get_env("PRIMARY_PROVIDER", default="minimax")
+    primary = get_env("PRIMARY_PROVIDER", default="deepseek")
     if primary not in CALLERS:
         print(
             f"::error::PRIMARY_PROVIDER must be one of {list(CALLERS)}, got {primary!r}",
