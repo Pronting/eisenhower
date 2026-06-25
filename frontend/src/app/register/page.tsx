@@ -54,7 +54,10 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.detail || data.message || 'Registration failed')
       localStorage.setItem('token', data.data.token)
       localStorage.setItem('user', JSON.stringify(data.data.user))
-      router.push('/dashboard')
+      // Respect ?redirect=... param (used by device-authorize flow)
+      const params = new URLSearchParams(window.location.search)
+      const redirect = params.get('redirect') || '/dashboard'
+      router.push(redirect)
     } catch (err: any) {
       setError(err.message)
     } finally {
