@@ -202,3 +202,24 @@ class NoteProcessResponse(BaseModel):
 class NoteConfirmRequest(BaseModel):
     content: str = Field(min_length=1, max_length=5000)
     tasks: list[NoteTaskItem]
+
+
+# ======================================================================
+# Device Auth (OAuth Device Flow)
+# ======================================================================
+
+class DeviceCodeResponse(BaseModel):
+    device_code: str
+    user_code: str
+    verification_uri: str
+    expires_in: int  # seconds
+    interval: int  # polling interval in seconds
+
+
+class DeviceTokenRequest(BaseModel):
+    device_code: str
+    grant_type: str = "urn:ietf:params:oauth:grant-type:device_code"
+
+
+class DeviceAuthorizeRequest(BaseModel):
+    user_code: str
